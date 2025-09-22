@@ -21,3 +21,31 @@ class Category(CategoryBase):
     
     class Config:
         from_attributes = True
+
+# ------------------ Phase 2: Proposal Schemas ------------------
+
+class ProposalBase(BaseModel):
+    ministry: str
+    category_id: int
+    title: str
+    description: Optional[str] = None
+    requested_amount: float
+
+class ProposalCreate(ProposalBase):
+    pass
+
+class ProposalUpdate(BaseModel):
+    ministry: Optional[str] = None
+    category_id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    requested_amount: Optional[float] = None
+    status: Optional[str] = None  # still Pending in Phase 2
+
+class Proposal(ProposalBase):
+    id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
