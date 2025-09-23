@@ -1,7 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 import uvicorn
+import csv
+import json
+import io
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -233,5 +236,87 @@ def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depend
     db.commit()
     db.refresh(proposal)
     return proposal
+
+
+# ------------------ Phase 4: Contract Upload & Parsing ------------------
+
+@app.post("/contracts/parse")
+def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    filename = file.filename or ""
+    content = file.file.read()
+    drafts = []
+
+    def map_category_id(category_name: str | None):
+        if not category_name:
+            return None
+        q = db.query(DBCategory).filter(DBCategory.name.ilike(category_name)).first()
+        if q:
+            return q.id
+        q = db.query(DBCategory).filter(DBCategory.name.ilike(f"%{category_name}%")).first()
+        return q.id if q else None
+
+    def normalize_record(r: dict):
+        ministry = r.get('ministry') or r.get('dept') or r.get('ministry_name')
+        category_name = r.get('category') or r.get('category_name') or r.get('dept_category')
+        title = r.get('title') or r.get('project') or r.get('subject')
+        description = r.get('description') or r.get('details')
+        amount = r.get('requested_amount')
+        if amount in (None, ''):
+            amount = r.get('amount') or r.get('value') or r.get('requested')
+        try:
+            requested_amount = float(amount) if amount not in (None, '') else None
+        except Exception:
+            requested_amount = None
+        category_id = map_category_id(category_name)
+        errors = []
+        if not ministry:
+            errors.append('missing ministry')
+        if not title:
+            errors.append('missing title')
+        if requested_amount is None or requested_amount <= 0:
+            errors.append('invalid amount')
+        if category_id is None:
+            errors.append('unknown category')
+        dup = None
+        if ministry and title and requested_amount is not None:
+            dup = db.query(DBProposal).filter(
+                DBProposal.ministry == ministry,
+                DBProposal.title == title,
+                DBProposal.requested_amount == requested_amount,
+            ).first()
+            if dup:
+                errors.append('possible duplicate')
+        return {
+            'ministry': ministry,
+            'category_id': category_id,
+            'category_name': category_name,
+            'title': title,
+            'description': description,
+            'requested_amount': requested_amount,
+            'errors': errors,
+            'valid': len(errors) == 0,
+        }
+
+    try:
+        if filename.lower().endswith('.json'):
+            import json
+            data = json.loads(content.decode('utf-8'))
+            records = data if isinstance(data, list) else [data]
+            for r in records:
+                drafts.append(normalize_record(r))
+        elif filename.lower().endswith('.csv'):
+            import csv, io
+            text = content.decode('utf-8')
+            reader = csv.DictReader(io.StringIO(text))
+            for r in reader:
+                drafts.append(normalize_record(r))
+        else:
+            raise HTTPException(status_code=400, detail='Unsupported file type. Use .json or .csv')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Failed to parse file: {str(e)}')
+
+    return {'drafts': drafts}
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

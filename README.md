@@ -211,3 +211,51 @@ The foundation is complete! We now have a fully functional budget category manag
 - ⏳ Phase 4: Contract upload & parsing (planned)
 - ⏳ Phase 5: Visualization dashboard (planned)
 - ⏳ Phase 6: History & export (planned)
+
+## Phase 4: Contract Upload & Parsing (COMPLETED)
+
+### Endpoint
+- `POST /contracts/parse` (multipart/form-data)
+  - Accepts `.json` or `.csv` file as `file`
+  - Returns `{ drafts: [ { ministry, category_id, category_name, title, description, requested_amount, valid, errors[] } ] }`
+  - Field aliases supported: `amount|value|requested -> requested_amount`, `dept|ministry_name -> ministry`, `category_name -> category`, `project|subject -> title`, `details -> description`
+
+### JSON Examples
+Single record:
+```json
+{
+  "ministry": "Health",
+  "category": "Health",
+  "title": "Hospital Equipment",
+  "description": "ICU upgrade",
+  "requested_amount": 500000
+}
+```
+Multiple records:
+```json
+[
+  { "ministry": "Education", "category": "Education", "title": "STEM Labs", "requested_amount": 250000 },
+  { "ministry": "Transport", "category": "Transport", "title": "Road Repairs", "description": "Phase 1", "requested_amount": 1200000 }
+]
+```
+
+### CSV Example
+```csv
+ministry,category,title,description,requested_amount
+Health,Health,Hospital Equipment,ICU upgrade,500000
+Education,Education,STEM Labs,,250000
+Transport,Transport,Road Repairs,Phase 1,1200000
+```
+
+### Frontend Flow
+- Contract Upload section: choose file → Parse → preview drafts
+- Inline-fix invalid rows (category/title/amount) then create
+- Actions:
+  - Create Proposal (per row)
+  - Create All Valid (batch)
+- Proposals list refreshes automatically
+
+### Validation & Mapping
+- `valid = true` only if: ministry present, title present, requested_amount > 0, category matched to existing category
+- `errors[]` lists row-specific issues (e.g., missing title, unknown category, invalid amount, possible duplicate)
+

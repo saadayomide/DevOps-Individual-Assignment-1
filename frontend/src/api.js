@@ -78,3 +78,15 @@ export const proposalAPI = {
 };
 
 export default api;
+
+// Upload/Parse API
+export const uploadAPI = {
+  parse: async (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post('/contracts/parse', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+};

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import CategoryManager from './CategoryManager';
 import ProposalForm from './ProposalForm';
 import ProposalsList from './ProposalsList';
+import ContractUpload from './ContractUpload';
 import './App.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <CategoryManager />
       <ProposalForm onCreated={handleProposalCreated} />
       <ProposalsList key={proposalRefreshKey} />
+      <ContractUpload onCreated={handleProposalCreated} />
     </div>
   );
 }
