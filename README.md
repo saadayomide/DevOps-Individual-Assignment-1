@@ -181,3 +181,33 @@ The foundation is complete! We now have a fully functional budget category manag
 1. Create categories in the table above
 2. Use the Proposal form to submit a proposal
 3. View submitted proposals in the list (status: Pending)
+
+## Phase 3: Approval Workflow (COMPLETED)
+
+### Backend
+- New endpoints:
+  - `POST /proposals/{id}/approve` - Approve with amount and notes
+  - `POST /proposals/{id}/reject` - Reject with optional notes
+- Extended Proposal schema: `approved_amount`, `decision_notes`, `decided_at`
+- Business logic: Only Pending proposals can be decided; approved amounts deduct from category remaining budget
+- Validation: approved_amount must be > 0 and ≤ min(requested_amount, remaining_budget)
+
+### Frontend
+- Approval dialog with amount input and decision notes
+- "Decide" button on Pending proposals
+- Real-time budget updates after decisions
+- Form validation fixes and immediate list refresh
+
+### How to use
+1. Submit proposals (they start as Pending)
+2. Click "Decide" on any Pending proposal
+3. Choose Approve (enter amount ≤ remaining budget) or Reject
+4. See updated remaining budgets in categories table
+
+### Current Status
+- ✅ Phase 1: Core CRUD for categories
+- ✅ Phase 2: Proposal submission workflow  
+- ✅ Phase 3: Approval workflow with budget deduction
+- ⏳ Phase 4: Contract upload & parsing (planned)
+- ⏳ Phase 5: Visualization dashboard (planned)
+- ⏳ Phase 6: History & export (planned)

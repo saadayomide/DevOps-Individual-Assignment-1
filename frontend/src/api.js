@@ -47,6 +47,14 @@ export const categoryAPI = {
 
 // Proposal API functions
 export const proposalAPI = {
+  approve: async (id, data) => {
+    const response = await api.post(`/proposals/${id}/approve`, data);
+    return response.data;
+  },
+  reject: async (id, data) => {
+    const response = await api.post(`/proposals/${id}/reject`, data);
+    return response.data;
+  },
   getAll: async (params = {}) => {
     const response = await api.get('/proposals', { params });
     return response.data;

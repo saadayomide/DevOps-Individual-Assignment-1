@@ -98,7 +98,7 @@ return (
         </div>
         <div className="form-group">
           <label>Requested Amount</label>
-          <input name="requested_amount" type="number" min="1" step="1000" value={form.requested_amount} onChange={onChange} required />
+          <input name="requested_amount" type="number" min="1" value={form.requested_amount} onChange={onChange} required />
         </div>
         <div className="form-actions">
           <button className="btn btn-primary" type="submit">Submit</button>

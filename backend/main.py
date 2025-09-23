@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 import uvicorn
+from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal
-from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate
+from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject
 
 # Create FastAPI app
 app = FastAPI(title="Government Spending Tracker", version="1.0.0")
@@ -188,5 +189,49 @@ def delete_proposal(proposal_id: int, db: Session = Depends(get_db)):
     db.delete(proposal)
     db.commit()
     return {"message": "Proposal deleted successfully"}
+
+
+# ------------------ Phase 3: Approval Endpoints ------------------
+
+@app.post("/proposals/{proposal_id}/approve", response_model=Proposal)
+def approve_proposal(proposal_id: int, body: ProposalApprove, db: Session = Depends(get_db)):
+    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    if proposal.status != "Pending":
+        raise HTTPException(status_code=400, detail="Only pending proposals can be approved")
+    if body.approved_amount is None or body.approved_amount <= 0:
+        raise HTTPException(status_code=400, detail="approved_amount must be > 0")
+    if body.approved_amount > proposal.requested_amount:
+        raise HTTPException(status_code=400, detail="approved_amount exceeds requested amount")
+    category = db.query(DBCategory).filter(DBCategory.id == proposal.category_id).with_for_update(nowait=False).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category does not exist")
+    if body.approved_amount > category.remaining_budget:
+        raise HTTPException(status_code=400, detail="Insufficient remaining budget")
+    # Apply decision atomically
+    category.remaining_budget = category.remaining_budget - body.approved_amount
+    proposal.status = "Approved"
+    proposal.approved_amount = body.approved_amount
+    proposal.decision_notes = body.decision_notes
+    proposal.decided_at = datetime.utcnow()
+    db.commit()
+    db.refresh(proposal)
+    return proposal
+
+@app.post("/proposals/{proposal_id}/reject", response_model=Proposal)
+def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depends(get_db)):
+    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    if proposal.status != "Pending":
+        raise HTTPException(status_code=400, detail="Only pending proposals can be rejected")
+    proposal.status = "Rejected"
+    proposal.approved_amount = None
+    proposal.decision_notes = body.decision_notes
+    proposal.decided_at = datetime.utcnow()
+    db.commit()
+    db.refresh(proposal)
+    return proposal
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

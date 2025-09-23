@@ -45,7 +45,18 @@ class ProposalUpdate(BaseModel):
 class Proposal(ProposalBase):
     id: int
     status: str
+    approved_amount: float | None = None
+    decision_notes: str | None = None
+    decided_at: datetime | None = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class ProposalApprove(BaseModel):
+    approved_amount: float
+    decision_notes: str | None = None
+
+class ProposalReject(BaseModel):
+    decision_notes: str | None = None

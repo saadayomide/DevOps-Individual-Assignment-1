@@ -1,3 +1,4 @@
+import sqlite3
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -30,12 +31,41 @@ class Proposal(Base):
     description = Column(String, nullable=True)
     requested_amount = Column(Float, nullable=False)
     status = Column(String, default="Pending", nullable=False)  # Pending/Approved/Rejected
+    approved_amount = Column(Float, nullable=True)
+    decision_notes = Column(String, nullable=True)
+    decided_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # Create tables
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+
+    # Lightweight migration for SQLite: add new columns if missing
+    try:
+        conn = sqlite3.connect(engine.url.database)
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(proposals)")
+        cols = {row[1] for row in cur.fetchall()}
+        migrations = []
+        if "approved_amount" not in cols:
+            migrations.append("ALTER TABLE proposals ADD COLUMN approved_amount REAL")
+        if "decision_notes" not in cols:
+            migrations.append("ALTER TABLE proposals ADD COLUMN decision_notes TEXT")
+        if "decided_at" not in cols:
+            migrations.append("ALTER TABLE proposals ADD COLUMN decided_at DATETIME")
+        for sql in migrations:
+            cur.execute(sql)
+        if migrations:
+            conn.commit()
+    except Exception as e:
+        # Best-effort; on failure, proceed (dev environment)
+        pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 # Database dependency
 
