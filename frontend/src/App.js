@@ -3,6 +3,7 @@ import CategoryManager from './CategoryManager';
 import ProposalForm from './ProposalForm';
 import ProposalsList from './ProposalsList';
 import ContractUpload from './ContractUpload';
+import Dashboard from './Dashboard';
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <CategoryManager />
       <ProposalForm onCreated={handleProposalCreated} />
       <ProposalsList key={proposalRefreshKey} />
+      <Dashboard refreshKey={proposalRefreshKey} />
       <ContractUpload onCreated={handleProposalCreated} />
     </div>
   );

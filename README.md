@@ -259,3 +259,23 @@ Transport,Transport,Road Repairs,Phase 1,1200000
 - `valid = true` only if: ministry present, title present, requested_amount > 0, category matched to existing category
 - `errors[]` lists row-specific issues (e.g., missing title, unknown category, invalid amount, possible duplicate)
 
+
+## Phase 5: Visualization Dashboard (COMPLETED)
+
+### Endpoint
+- `GET /dashboard/summary`
+  - Returns:
+    - `categories[]`: { id, name, allocated_budget, remaining_budget, approved_total }
+    - `ministries[]`: { ministry, requested_total, approved_total }
+    - `kpis`: { total_allocated, total_remaining, total_approved }
+
+### Frontend
+- Charts (Chart.js):
+  - Bar: Allocated vs Remaining per category
+  - Bar: Requested vs Approved by ministry
+- KPIs: totals for allocated, approved, remaining
+- Auto-refresh whenever proposals or approvals change
+
+### Usage
+Open the app and view the Dashboard section. Totals and charts reflect current proposals and approvals.
+

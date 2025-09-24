@@ -318,5 +318,67 @@ def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f'Failed to parse file: {str(e)}')
 
     return {'drafts': drafts}
+
+
+# ------------------ Phase 5: Dashboard Summary ------------------
+
+@app.get("/dashboard/summary")
+def dashboard_summary(db: Session = Depends(get_db)):
+    # Per-category aggregates
+    categories = db.query(DBCategory).all()
+    # Sum approved amounts grouped by category_id
+    from sqlalchemy import func
+    approved_sums = dict(
+        db.query(DBProposal.category_id, func.coalesce(func.sum(DBProposal.approved_amount), 0.0))
+          .filter(DBProposal.status == "Approved")
+          .group_by(DBProposal.category_id)
+          .all()
+    )
+    category_stats = []
+    for c in categories:
+        approved_total = float(approved_sums.get(c.id, 0.0) or 0.0)
+        category_stats.append({
+            "id": c.id,
+            "name": c.name,
+            "allocated_budget": float(c.allocated_budget),
+            "remaining_budget": float(c.remaining_budget),
+            "approved_total": approved_total,
+        })
+
+    # Per-ministry aggregates (requested vs approved)
+    requested = dict(
+        db.query(DBProposal.ministry, func.coalesce(func.sum(DBProposal.requested_amount), 0.0))
+          .group_by(DBProposal.ministry)
+          .all()
+    )
+    approved_by_ministry = dict(
+        db.query(DBProposal.ministry, func.coalesce(func.sum(DBProposal.approved_amount), 0.0))
+          .filter(DBProposal.status == "Approved")
+          .group_by(DBProposal.ministry)
+          .all()
+    )
+    ministries = sorted(set(list(requested.keys()) + list(approved_by_ministry.keys())))
+    ministry_stats = []
+    for m in ministries:
+        ministry_stats.append({
+            "ministry": m,
+            "requested_total": float(requested.get(m, 0.0) or 0.0),
+            "approved_total": float(approved_by_ministry.get(m, 0.0) or 0.0),
+        })
+
+    # Overall KPIs
+    total_allocated = float(sum(c.allocated_budget for c in categories))
+    total_remaining = float(sum(c.remaining_budget for c in categories))
+    total_approved = float(sum(x[1] for x in approved_sums.items()))
+
+    return {
+        "categories": category_stats,
+        "ministries": ministry_stats,
+        "kpis": {
+            "total_allocated": total_allocated,
+            "total_remaining": total_remaining,
+            "total_approved": total_approved,
+        },
+    }
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
