@@ -13,31 +13,72 @@ const ContractUpload = ({ onCreated }) => {
     setError(null);
   };
 
-  const onParse = async () => {
+    const onParse = async () => {
     if (!file) { setError('Please choose a JSON or CSV file.'); return; }
     try {
       setParsing(true);
       const res = await uploadAPI.parse(file);
-      setDrafts(res.drafts || []);
+      
+      // Get existing proposals to check for duplicates
+      const existingProposals = await proposalAPI.getAll();
+      
+      // Initialize row-level flags and check for existing proposals
+      const initializedDrafts = (res.drafts || []).map(d => {
+        const isExisting = existingProposals.some(existing => 
+          existing.ministry === d.ministry && 
+          existing.title === d.title && 
+          existing.requested_amount === d.requested_amount
+        );
+        
+        return { 
+          ...d, 
+          isCreating: false, 
+          isCreated: isExisting  // Mark as created if it already exists
+        };
+      });
+      
+      setDrafts(initializedDrafts);
       setError(null);
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Failed to parse file');
+      // Handle different error formats
+      let errorMessage = 'Failed to parse file';
+      
+      if (e?.response?.data) {
+        const errorData = e.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setParsing(false);
     }
   };
 
-  const fixCategory = (idx, categoryName) => {
-    setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, category_name: categoryName } : d));
-  };
-
-  const fixField = (idx, field, value) => {
-    setDrafts(prev => prev.map((d, i) => i === idx ? { ...d, [field]: value } : d));
-  };
-
-  const createProposal = async (d) => {
+  const createProposal = async (d, idx) => {
     try {
       if (!d.valid) { return; }
+      // Guard: skip if already created or being created
+      if (d.isCreating || d.isCreated) { return; }
+
+      // Mark as creating
+      setDrafts(prev => prev.map((x, i) => i === idx ? { ...x, isCreating: true } : x));
+
       await proposalAPI.create({
         ministry: d.ministry,
         category_id: d.category_id,
@@ -45,9 +86,39 @@ const ContractUpload = ({ onCreated }) => {
         description: d.description || null,
         requested_amount: d.requested_amount
       });
+
+      // Mark as created
+      setDrafts(prev => prev.map((x, i) => i === idx ? { ...x, isCreating: false, isCreated: true } : x));
       onCreated && onCreated();
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Failed to create proposal from draft');
+      // Reset creating flag on error
+      setDrafts(prev => prev.map((x, i) => i === idx ? { ...x, isCreating: false } : x));
+
+      // Handle different error formats
+      let errorMessage = 'Failed to create proposal from draft';
+      
+      if (e?.response?.data) {
+        const errorData = e.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -89,10 +160,10 @@ const ContractUpload = ({ onCreated }) => {
                   <td>
                     <button
                       className="btn btn-small btn-primary"
-                      disabled={!d.valid}
-                      onClick={() => createProposal(d)}
+                      disabled={!d.valid || d.isCreating || d.isCreated}
+                      onClick={() => createProposal(d, i)}
                     >
-                      Create Proposal
+                      {d.isCreated ? 'Created' : (d.isCreating ? 'Creating…' : 'Create Proposal')}
                     </button>
                   </td>
                 </tr>
@@ -102,9 +173,9 @@ const ContractUpload = ({ onCreated }) => {
         </div>
       )}
       <div className='form-actions' style={{ marginTop: 10 }}>
-        <button className='btn btn-primary' onClick={async () => {
-          for (const d of drafts) { if (d.valid) { try { await createProposal(d); } catch(e){} } }
-        }}>Create All Valid</button>
+        <button className="btn btn-secondary" onClick={() => { setDrafts([]); setFile(null); setError(null); }}>
+          Clear All
+        </button>
       </div>
     </div>
   );

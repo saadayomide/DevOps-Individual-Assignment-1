@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { categoryAPI, proposalAPI } from './api';
+import React, { useState, useEffect } from 'react';
+import { proposalAPI, categoryAPI } from './api';
 
 const ProposalForm = ({ onCreated }) => {
   const [categories, setCategories] = useState([]);
@@ -11,17 +11,6 @@ const ProposalForm = ({ onCreated }) => {
     requested_amount: ''
   });
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const cats = await categoryAPI.getAll();
-        setCategories(cats);
-      } catch (e) {
-        setError('Failed to load categories');
-      }
-    })();
-  }, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -52,11 +41,35 @@ const ProposalForm = ({ onCreated }) => {
       setForm({ ministry: '', category_id: '', title: '', description: '', requested_amount: '' });
       onCreated && onCreated();
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Failed to submit proposal.');
+      // Handle different error formats
+      let errorMessage = 'Failed to submit proposal.';
+      
+      if (e?.response?.data) {
+        const errorData = e.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
-    useEffect(() => {
+  useEffect(() => {
     const reload = async () => {
       try {
         const cats = await categoryAPI.getAll();
@@ -70,7 +83,7 @@ const ProposalForm = ({ onCreated }) => {
     return () => window.removeEventListener('categories-updated', handler);
   }, []);
 
-return (
+  return (
     <div className="form-container">
       <h3>Submit Proposal</h3>
       {error && <div className="error">{error}</div>}
@@ -107,4 +120,5 @@ return (
     </div>
   );
 };
+
 export default ProposalForm;

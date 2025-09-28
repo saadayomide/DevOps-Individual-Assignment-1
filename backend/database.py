@@ -1,5 +1,5 @@
 import sqlite3
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -20,6 +20,21 @@ class Category(Base):
     remaining_budget = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
+# User model (Authentication)
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False)  # "ministry" or "finance"
+    ministry = Column(String, nullable=True)  # Only for ministry users
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # Proposal model (Phase 2)
 class Proposal(Base):
     __tablename__ = "proposals"
@@ -39,7 +54,49 @@ class Proposal(Base):
 # Create tables
 
 def create_tables():
+    """Create all database tables including the new User table."""
+    from database import User as DBUser
+    # Create all tables
     Base.metadata.create_all(bind=engine)
+    
+    # Create default users if they don't exist
+    from auth import get_password_hash
+    from sqlalchemy.orm import sessionmaker
+    
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+    
+    try:
+        # Create default finance user
+        finance_user = db.query(DBUser).filter(DBUser.username == "finance").first()
+        if not finance_user:
+            finance_user = DBUser(
+                username="finance",
+                email="finance@gov.com",
+                hashed_password=get_password_hash("fin"),
+                role="finance"
+            )
+            db.add(finance_user)
+        
+        # Create default ministry user
+        ministry_user = db.query(DBUser).filter(DBUser.username == "ministry").first()
+        if not ministry_user:
+            ministry_user = DBUser(
+                username="ministry",
+                email="ministry@gov.com",
+                hashed_password=get_password_hash("min"),
+                role="ministry",
+                ministry="Ministry of Education"
+            )
+            db.add(ministry_user)
+        
+        db.commit()
+        print("Default users created successfully")
+    except Exception as e:
+        print(f"Error creating default users: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
     # Lightweight migration for SQLite: add new columns if missing
     try:

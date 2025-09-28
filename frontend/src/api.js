@@ -9,44 +9,63 @@ const api = axios.create({
   },
 });
 
+// Add a request interceptor to include the auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Category API functions
 export const categoryAPI = {
-  // Get all categories
   getAll: async () => {
     const response = await api.get('/categories');
     return response.data;
   },
-
-  // Get single category
-  getById: async (id) => {
-    const response = await api.get(`/categories/${id}`);
+  create: async (category) => {
+    const response = await api.post('/categories', category);
     return response.data;
   },
-
-  // Create new category
-  create: async (categoryData) => {
-    const response = await api.post('/categories', categoryData);
+  update: async (id, category) => {
+    const response = await api.put(`/categories/${id}`, category);
     return response.data;
   },
-
-  // Update category
-  update: async (id, categoryData) => {
-    const response = await api.put(`/categories/${id}`, categoryData);
-    return response.data;
-  },
-
-  // Delete category
   delete: async (id) => {
-    const response = await api.delete(`/categories/${id}`);
-    return response.data;
-  },
+    await api.delete(`/categories/${id}`);
+  }
 };
-
-
-
 
 // Proposal API functions
 export const proposalAPI = {
+  getAll: async (filters = {}) => {
+    const query = new URLSearchParams(filters).toString();
+    const response = await api.get(`/proposals${query ? `?${query}` : ''}`);
+    return response.data;
+  },
+  create: async (proposal) => {
+    const response = await api.post('/proposals', proposal);
+    return response.data;
+  },
+  getById: async (id) => {
+    const response = await api.get(`/proposals/${id}`);
+    return response.data;
+  },
+  update: async (id, proposal) => {
+    const response = await api.put(`/proposals/${id}`, proposal);
+    return response.data;
+  },
+  delete: async (id, data) => {
+    // send reason in body with axios.delete
+    const response = await api.delete(`/proposals/${id}`, { data });
+    return response.data;
+  },
   approve: async (id, data) => {
     const response = await api.post(`/proposals/${id}/approve`, data);
     return response.data;
@@ -54,32 +73,10 @@ export const proposalAPI = {
   reject: async (id, data) => {
     const response = await api.post(`/proposals/${id}/reject`, data);
     return response.data;
-  },
-  getAll: async (params = {}) => {
-    const response = await api.get('/proposals', { params });
-    return response.data;
-  },
-  getById: async (id) => {
-    const response = await api.get(`/proposals/${id}`);
-    return response.data;
-  },
-  create: async (proposalData) => {
-    const response = await api.post('/proposals', proposalData);
-    return response.data;
-  },
-  update: async (id, proposalData) => {
-    const response = await api.put(`/proposals/${id}`, proposalData);
-    return response.data;
-  },
-  delete: async (id) => {
-    const response = await api.delete(`/proposals/${id}`);
-    return response.data;
-  },
+  }
 };
 
-export default api;
-
-// Upload/Parse API
+// Upload API functions
 export const uploadAPI = {
   parse: async (file) => {
     const form = new FormData();
@@ -87,6 +84,34 @@ export const uploadAPI = {
     const response = await api.post('/contracts/parse', form, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+    return response.data;
+  }
+};
+
+// Dashboard API functions
+export const dashboardAPI = {
+  getSummary: async () => {
+    const response = await api.get('/dashboard/summary');
+    return response.data;
+  }
+};
+
+// Auth API functions
+export const authAPI = {
+  login: async (username, password) => {
+    const response = await api.post('/auth/login', { username, password });
+    return response.data;
+  },
+  getMe: async () => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+};
+
+// History API functions
+export const historyAPI = {
+  list: async (filters = {}) => {
+    const response = await api.get('/proposals', { params: filters });
     return response.data;
   },
 };

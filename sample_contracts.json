@@ -1,0 +1,44 @@
+[
+  {
+    "ministry": "Ministry of Education",
+    "category": "Education",
+    "title": "Primary School Infrastructure Development",
+    "description": "Construction of 50 new classrooms across rural areas to improve access to quality education",
+    "requested_amount": 2500000
+  },
+  {
+    "ministry": "Ministry of Health",
+    "category": "Health",
+    "title": "Medical Equipment Procurement",
+    "description": "Purchase of advanced diagnostic equipment for 10 regional hospitals",
+    "requested_amount": 1800000
+  },
+  {
+    "ministry": "Ministry of Defense",
+    "category": "Defense",
+    "title": "Military Vehicle Maintenance",
+    "description": "Annual maintenance and repair of military vehicles and equipment",
+    "requested_amount": 3200000
+  },
+  {
+    "ministry": "Ministry of Education",
+    "category": "Education",
+    "title": "Digital Learning Platform",
+    "description": "Development and deployment of online learning management system for universities",
+    "requested_amount": 950000
+  },
+  {
+    "ministry": "Ministry of Health",
+    "category": "Health",
+    "title": "Vaccination Program Expansion",
+    "description": "Expanding vaccination coverage to remote areas with mobile health units",
+    "requested_amount": 1200000
+  },
+  {
+    "ministry": "Ministry of Defense",
+    "category": "Defense",
+    "title": "Cybersecurity Infrastructure",
+    "description": "Upgrading national cybersecurity systems and training personnel",
+    "requested_amount": 2100000
+  }
+]

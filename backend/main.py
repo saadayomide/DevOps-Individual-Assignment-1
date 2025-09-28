@@ -1,4 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from datetime import timedelta
+from auth import (
+    authenticate_user, create_access_token, get_current_user, 
+    get_password_hash, require_finance_role, require_ministry_role
+)
+from models import UserCreate, UserLogin, Token, User as UserModel
 from sqlalchemy.orm import Session
 from typing import List
 import uvicorn
@@ -8,8 +14,8 @@ import io
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal
-from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject
+from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal, User as DBUser
+from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject, ProposalDelete
 
 # Create FastAPI app
 app = FastAPI(title="Government Spending Tracker", version="1.0.0")
@@ -22,6 +28,73 @@ app.add_middleware(CORSMiddleware,
 
 # Create database tables on startup
 @app.on_event("startup")
+def startup_event():
+    create_tables()
+
+# ------------------ Authentication Endpoints ------------------
+
+@app.post("/auth/register", response_model=UserModel)
+def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user."""
+    # Check if username already exists
+    existing_user = db.query(DBUser).filter(DBUser.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # Check if email already exists
+    existing_email = db.query(DBUser).filter(DBUser.email == user_data.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Validate role
+    if user_data.role not in ["ministry", "finance"]:
+        raise HTTPException(status_code=400, detail="Role must be 'ministry' or 'finance'")
+    
+    # Validate ministry field for ministry users
+    if user_data.role == "ministry" and not user_data.ministry:
+        raise HTTPException(status_code=400, detail="Ministry field is required for ministry users")
+    
+    # Create new user
+    hashed_password = get_password_hash(user_data.password)
+    db_user = DBUser(
+        username=user_data.username,
+        email=user_data.email,
+        hashed_password=hashed_password,
+        role=user_data.role,
+        ministry=user_data.ministry
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+@app.post("/auth/login", response_model=Token)
+def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
+    """Login a user and return JWT token."""
+    user = authenticate_user(db, user_credentials.username, user_credentials.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.get("/auth/me", response_model=UserModel)
+def get_current_user_info(current_user: DBUser = Depends(get_current_user)):
+    """Get current user information."""
+    return current_user
+
+
+
 def startup_event():
     create_tables()
 
@@ -197,7 +270,7 @@ def delete_proposal(proposal_id: int, db: Session = Depends(get_db)):
 # ------------------ Phase 3: Approval Endpoints ------------------
 
 @app.post("/proposals/{proposal_id}/approve", response_model=Proposal)
-def approve_proposal(proposal_id: int, body: ProposalApprove, db: Session = Depends(get_db)):
+def approve_proposal(proposal_id: int, body: ProposalApprove, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
     proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
@@ -223,7 +296,7 @@ def approve_proposal(proposal_id: int, body: ProposalApprove, db: Session = Depe
     return proposal
 
 @app.post("/proposals/{proposal_id}/reject", response_model=Proposal)
-def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depends(get_db)):
+def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
     proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
@@ -241,7 +314,7 @@ def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depend
 # ------------------ Phase 4: Contract Upload & Parsing ------------------
 
 @app.post("/contracts/parse")
-def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db)):
+def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: DBUser = Depends(require_ministry_role)):
     filename = file.filename or ""
     content = file.file.read()
     drafts = []
@@ -323,7 +396,7 @@ def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db)):
 # ------------------ Phase 5: Dashboard Summary ------------------
 
 @app.get("/dashboard/summary")
-def dashboard_summary(db: Session = Depends(get_db)):
+def dashboard_summary(db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
     # Per-category aggregates
     categories = db.query(DBCategory).all()
     # Sum approved amounts grouped by category_id

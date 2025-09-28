@@ -29,49 +29,89 @@ const CategoryManager = () => {
       }
       setError(null);
     } catch (err) {
-      setError('Failed to load categories. Make sure the backend server is running.');
-      console.error('Error loading categories:', err);
+      // Handle different error formats
+      let errorMessage = 'Failed to load categories';
+      
+      if (err?.response?.data) {
+        const errorData = err.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+
     try {
-      const amount = parseFloat(formData.allocated_budget);
-      if (!formData.name || isNaN(amount) || amount < 0) {
-        setError('Please provide a name and a non-negative allocated budget.');
+      const budget = parseFloat(formData.allocated_budget);
+      if (isNaN(budget) || budget <= 0) {
+        setError('Allocated budget must be a number greater than 0.');
         return;
       }
-      const categoryData = {
-        name: formData.name.trim(),
-        allocated_budget: amount
-      };
 
       if (editingCategory) {
-        await categoryAPI.update(editingCategory.id, categoryData);
+        await categoryAPI.update(editingCategory.id, {
+          name: formData.name,
+          allocated_budget: budget
+        });
       } else {
-        await categoryAPI.create(categoryData);
+        await categoryAPI.create({
+          name: formData.name,
+          allocated_budget: budget
+        });
       }
 
-      // Reset form and reload categories
       setFormData({ name: '', allocated_budget: '' });
-      setEditingCategory(null);
       setShowForm(false);
-      loadCategories();
+      setEditingCategory(null);
+      await loadCategories();
     } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setError(detail || 'Failed to save category. Please try again.');
-      console.error('Error saving category:', err);
+      // Handle different error formats
+      let errorMessage = editingCategory ? 'Failed to update category' : 'Failed to create category';
+      
+      if (err?.response?.data) {
+        const errorData = err.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -85,111 +125,83 @@ const CategoryManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await categoryAPI.delete(id);
-        loadCategories();
-      } catch (err) {
-        setError('Failed to delete category. Please try again.');
-        console.error('Error deleting category:', err);
+    if (!window.confirm('Are you sure you want to delete this category?')) {
+      return;
+    }
+
+    try {
+      await categoryAPI.delete(id);
+      await loadCategories();
+    } catch (err) {
+      // Handle different error formats
+      let errorMessage = 'Failed to delete category';
+      
+      if (err?.response?.data) {
+        const errorData = err.response.data;
+        
+        // Handle validation error array
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => err.msg || err.message || String(err)).join(', ');
+        }
+        // Handle single validation error object
+        else if (errorData.detail && typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.msg || errorData.detail.message || String(errorData.detail);
+        }
+        // Handle string error
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle other error formats
+        else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
       }
+      
+      setError(errorMessage);
     }
   };
 
   const handleCancel = () => {
     setFormData({ name: '', allocated_budget: '' });
-    setEditingCategory(null);
     setShowForm(false);
+    setEditingCategory(null);
+    setError(null);
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
-    return <div className="loading">Loading categories...</div>;
+    return (
+      <div className="card">
+        <h2>Category Management</h2>
+        <div className="loading">Loading categories...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="category-manager">
-      <div className="header">
-        <h1>Government Spending Tracker</h1>
-        <h2>Budget Categories Management</h2>
-        {error && <div className="error">{error}</div>}
-      </div>
+    <div className="card">
+      <h2>Category Management</h2>
+      {error && <div className="error-message">{error}</div>}
 
-      <div className="actions">
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowForm(true)}
-        >
-          Add New Category
-        </button>
-        <button 
-          className="btn btn-secondary"
-          onClick={loadCategories}
-        >
-          Refresh
-        </button>
-      </div>
+      {!showForm ? (
+        <div>
+          <div className="form-actions">
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowForm(true)}
+            >
+              Add New Category
+            </button>
+          </div>
 
-      {showForm && (
-        <div className="form-container">
-          <h3>{editingCategory ? 'Edit Category' : 'Add New Category'}</h3>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="name">Category Name:</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                placeholder="e.g., Education, Health, Defense"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="allocated_budget">Allocated Budget:</label>
-              <input
-                type="number"
-                id="allocated_budget"
-                name="allocated_budget"
-                value={formData.allocated_budget}
-                onChange={handleInputChange}
-                required
-                min="0"
-                step="1000"
-                placeholder="e.g., 5000000"
-              />
-            </div>
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary">
-                {editingCategory ? 'Update Category' : 'Create Category'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={handleCancel}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="categories-table">
-        <h3>Budget Categories</h3>
-        {categories.length === 0 ? (
-          <p className="no-data">No categories found. Create your first category above.</p>
-        ) : (
-          <table>
+          <table className="categories-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Category Name</th>
+                <th>Name</th>
                 <th>Allocated Budget</th>
                 <th>Remaining Budget</th>
                 <th>Created</th>
@@ -199,21 +211,21 @@ const CategoryManager = () => {
             <tbody>
               {categories.map(category => (
                 <tr key={category.id}>
-                  <td>{category.id}</td>
                   <td>{category.name}</td>
-                  <td>{formatCurrency(category.allocated_budget)}</td>
-                  <td>{formatCurrency(category.remaining_budget)}</td>
+                  <td>${category.allocated_budget.toLocaleString()}</td>
+                  <td>${category.remaining_budget.toLocaleString()}</td>
                   <td>{new Date(category.created_at).toLocaleDateString()}</td>
                   <td>
                     <button 
-                      className="btn btn-small btn-primary"
+                      className="btn btn-small btn-secondary" 
                       onClick={() => handleEdit(category)}
                     >
                       Edit
                     </button>
                     <button 
-                      className="btn btn-small btn-danger"
+                      className="btn btn-small btn-secondary" 
                       onClick={() => handleDelete(category.id)}
+                      style={{ marginLeft: '8px', backgroundColor: '#ef4444', color: 'white' }}
                     >
                       Delete
                     </button>
@@ -222,8 +234,51 @@ const CategoryManager = () => {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="name">Category Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              placeholder="e.g., Education, Health, Defense"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="allocated_budget">Allocated Budget</label>
+            <input
+              type="number"
+              id="allocated_budget"
+              name="allocated_budget"
+              value={formData.allocated_budget}
+              onChange={handleInputChange}
+              placeholder="e.g., 1000000"
+              min="1"
+              step="1000"
+              required
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">
+              {editingCategory ? 'Update Category' : 'Create Category'}
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };
