@@ -4,11 +4,12 @@ A web application that simulates how government ministries submit budget proposa
 
 ## Overview
 
-- Categories represent budget lines (e.g., Education, Health). Each category has an allocated and remaining budget.
-- Ministries submit proposals against categories.
-- Finance reviews proposals and decides: Approved, Partially Approved, or Rejected.
-- Approved amounts are deducted from the category's remaining budget.
-- Dashboards visualize allocations and approvals; history views allow filtering and export.
+- **Ministries** are government departments that can submit budget proposals
+- **Categories** represent budget lines (e.g., Education, Health). Each category has an allocated and remaining budget.
+- **Ministries submit proposals** against categories with automatic ministry creation
+- **Finance users** review proposals and decide: Approved, Partially Approved, or Rejected.
+- **Approved amounts** are deducted from the category's remaining budget.
+- **Dashboards** visualize allocations and approvals; history views allow filtering and export.
 
 ## Architecture
 
@@ -24,20 +25,30 @@ DevOps-Individual-Assignment-1/
 │   ├── main.py                # FastAPI app (endpoints)
 │   ├── database.py            # SQLAlchemy models and DB helpers
 │   ├── models.py              # Pydantic models
-│   └── requirements.txt       # Backend dependencies
+│   ├── auth.py                # Authentication and authorization
+│   ├── requirements.txt       # Backend dependencies
+│   └── government_spending.db # SQLite database
 ├── frontend/
 │   ├── src/
-│   │   ├── api.js             # API clients (categories, proposals, uploads, history)
+│   │   ├── api.js             # API clients (ministries, categories, proposals, uploads, history)
 │   │   ├── CategoryManager.js # Category CRUD UI
-│   │   ├── ProposalForm.js    # Proposal submission UI
-│   │   ├── ProposalsList.js   # Proposals with actions (Decide)
+│   │   ├── ProposalForm.js    # Proposal submission UI with ministry auto-creation
+│   │   ├── ProposalsList.js   # Pending proposals with actions (Approve/Reject/Edit)
 │   │   ├── ApprovalDialog.js  # Approve/Reject dialog
+│   │   ├── EditProposalDialog.js # Edit proposal dialog for ministry users
 │   │   ├── ContractUpload.js  # Upload and parse JSON/CSV into proposal drafts
 │   │   ├── Dashboard.js       # Charts and KPIs
 │   │   ├── HistoryView.js     # History with filters and CSV export
+│   │   ├── Login.js           # Authentication UI
+│   │   ├── UserContext.js     # User state management
+│   │   ├── RoleGuard.js       # Role-based access control
+│   │   ├── Sidebar.js         # Navigation sidebar
 │   │   ├── CategoryManager.css# Styling
-│   │   └── App.js             # Composition
+│   │   └── App.js             # Main application component
 │   └── package.json
+├── DATABASE_ERD.md            # Database schema documentation
+├── sample_contracts.csv       # Sample contract data
+├── sample_contracts.json      # Sample contract data
 └── README.md
 ```
 
@@ -77,6 +88,32 @@ npm start
 ```
 
 The app runs at http://localhost:3000
+
+## Authentication & User Roles
+
+The system supports two user roles with comprehensive access control:
+
+### Default Users
+- **Finance User**: `finance` / `fin` - Can approve/reject proposals and manage categories
+- **Ministry User**: `ministry` / `min` - Can submit and edit proposals (Ministry of Education)
+
+### Capabilities
+- **Finance Users**: 
+  - Approve/reject proposals with custom amounts and notes
+  - Manage categories and budget allocations
+  - View comprehensive dashboards and analytics
+  - Create new ministries
+- **Ministry Users**: 
+  - Submit proposals with automatic ministry creation
+  - Edit pending proposals (with time-based restrictions)
+  - View proposal history and status
+  - Upload and parse contract files (CSV/JSON)
+
+### Key Features
+- **Ministry Auto-Creation**: When submitting proposals, ministries are automatically created if they don't exist
+- **Role-Based Access**: Different UI and API access based on user role
+- **Secure Authentication**: JWT-based authentication with password hashing
+- **Foreign Key Integrity**: Proper database relationships between users, ministries, and proposals
 
 ## Features by Phase
 
@@ -150,11 +187,92 @@ History and Exports
 4) Review Dashboard for allocations and approvals
 5) Review History and export CSV reports
 
+## Testing
+
+### Backend Unit Tests
+
+**Backend unit tests are mandatory to achieve max grade. Code coverage should be over 90%.**
+
+#### Installing Test Dependencies
+
+```bash
+cd backend
+pip install pytest pytest-cov pytest-asyncio httpx
+```
+
+#### Running Tests
+
+```bash
+# Run all tests with coverage
+pytest --cov=. --cov-report=term-missing --cov-report=html --cov-fail-under=90
+
+# Run tests with verbose output
+pytest -v --cov=. --cov-report=term-missing
+
+# Run specific test file
+pytest tests/test_auth.py --cov=. --cov-report=term-missing
+
+# Run tests without coverage (faster development)
+pytest
+```
+
+#### Test Coverage Reports
+
+After running tests with coverage, you can view detailed reports:
+
+- **Terminal Report**: Coverage summary displayed in terminal
+- **HTML Report**: Detailed HTML report generated in `htmlcov/` directory
+  ```bash
+  open htmlcov/index.html  # macOS
+  # or navigate to htmlcov/index.html in your browser
+  ```
+
+#### Test Categories
+
+The test suite should include:
+
+1. **Authentication Tests** (`test_auth.py`)
+   - Password hashing and verification
+   - User authentication
+   - JWT token creation and validation
+   - Role-based access control
+
+2. **Database Model Tests** (`test_database.py`)
+   - User model validation and constraints
+   - Category model with budget constraints
+   - Proposal model with status consistency
+   - Model relationships
+
+3. **API Endpoint Tests** (`test_api_endpoints.py`)
+   - Authentication endpoints (login, current user)
+   - Category CRUD operations
+   - Proposal management and filtering
+   - Dashboard summary
+   - Contract parsing (CSV/JSON)
+   - Error handling and validation
+
+#### Coverage Requirements
+
+- **Minimum Coverage**: 90% code coverage required
+- **Test Database**: Use separate SQLite test database
+- **Cleanup**: Tests should clean up after themselves
+- **Isolation**: Each test should be independent
+
+## Database Schema
+
+For detailed information about the database schema and entity relationships, see:
+- **`DATABASE_ERD.md`** - Complete database schema documentation with ERD
+
+The current schema includes:
+- **3 tables**: `categories`, `users`, `proposals`
+- **Simple relationships**: Categories have many proposals, users create proposals
+- **Basic constraints**: Unique usernames/emails, foreign key relationships
+
 ## Notes and Limitations
 
-- Authentication/roles are not included yet; can be added in a future phase
 - SQLite is used for local development; Postgres is recommended for multi-user deployments
 - FastAPI `on_event` startup is currently used; consider lifespan handlers in future refactors
+- **Unit tests are required for maximum grade achievement**
 
 ## Roadmap (Optional next steps)
 

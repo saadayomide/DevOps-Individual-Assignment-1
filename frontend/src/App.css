@@ -13,3 +13,19 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f5f5f5;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-buttons .btn {
+  margin: 0;
+}
+
+.page-description {
+  color: #666;
+  margin: 8px 0 20px 0;
+  font-size: 14px;
+}

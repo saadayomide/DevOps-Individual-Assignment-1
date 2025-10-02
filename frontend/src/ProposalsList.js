@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { proposalAPI, categoryAPI } from './api';
 import ApprovalDialog from './ApprovalDialog';
+import EditProposalDialog from './EditProposalDialog';
 import { useUser } from './UserContext';
 
 const ProposalsList = () => {
   const [proposals, setProposals] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [filters, setFilters] = useState({ ministry: '', status: '', category_id: '' });
+  const [filters, setFilters] = useState({ category_id: '', min_amount: '', max_amount: '' });
   const [error, setError] = useState(null);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const { user } = useUser();
   const [deletingId, setDeletingId] = useState(null);
+  const [editingProposal, setEditingProposal] = useState(null);
 
   const load = async () => {
     try {
-      const params = {};
-      if (filters.ministry) params.ministry = filters.ministry;
-      if (filters.status) params.status = filters.status;
+      const params = { status: 'Pending' }; // Always filter for pending proposals
       if (filters.category_id) params.category_id = filters.category_id;
+      if (filters.min_amount) params.min_amount = parseFloat(filters.min_amount);
+      if (filters.max_amount) params.max_amount = parseFloat(filters.max_amount);
       const data = await proposalAPI.getAll(params);
       setProposals(data);
       setError(null);
@@ -169,8 +171,37 @@ const ProposalsList = () => {
   };
 
   const onClearFilters = () => {
-    setFilters({ ministry: '', status: '', category_id: '' });
+    setFilters({ category_id: '', min_amount: '', max_amount: '' });
     load();
+  };
+
+  // Edit validation logic
+  const canEditProposal = (proposal) => {
+    if (!user || user.role !== 'ministry') return false;
+    if (proposal.status !== 'Pending') return false;
+    
+    // Check ministry match
+    if (user.ministry !== proposal.ministry) return false;
+    
+    return true;
+  };
+
+  const handleEdit = (proposal) => {
+    setEditingProposal(proposal);
+  };
+
+  const handleEditSubmit = async (formData) => {
+    try {
+      await proposalAPI.update(editingProposal.id, formData);
+      setEditingProposal(null);
+      load(); // Reload proposals
+    } catch (err) {
+      let errorMessage = 'Failed to update proposal';
+      if (err?.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      }
+      setError(errorMessage);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -212,7 +243,8 @@ const ProposalsList = () => {
   return (
     <>
       <div className="card">
-        <h2>Proposals</h2>
+        <h2>Pending Proposals</h2>
+        <p className="page-description">Review and manage pending budget proposals</p>
         {error && <div className="error-message">{error}</div>}
 
         <div className="filters-section">
@@ -231,13 +263,31 @@ const ProposalsList = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="status">Status</label>
-              <select name="status" value={filters.status} onChange={onChange}>
-                <option value="">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+              <label htmlFor="min_amount">Min Amount</label>
+              <input
+                type="text"
+                id="min_amount"
+                name="min_amount"
+                value={filters.min_amount}
+                onChange={onChange}
+                placeholder="e.g., 100000"
+                pattern="[0-9]*"
+                inputMode="numeric"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="max_amount">Max Amount</label>
+              <input
+                type="text"
+                id="max_amount"
+                name="max_amount"
+                value={filters.max_amount}
+                onChange={onChange}
+                placeholder="e.g., 5000000"
+                pattern="[0-9]*"
+                inputMode="numeric"
+              />
             </div>
             
             <div className="form-group">
@@ -335,13 +385,23 @@ const ProposalsList = () => {
                           </button>
                         )}
                         {proposal.status === 'Pending' && user?.role === 'ministry' && (
-                          <button
-                            className="btn btn-small btn-danger"
-                            disabled={deletingId === proposal.id}
-                            onClick={() => handleDelete(proposal)}
-                          >
-                            {deletingId === proposal.id ? 'Deleting…' : 'Delete'}
-                          </button>
+                          <div className="action-buttons">
+                            {canEditProposal(proposal) && (
+                              <button
+                                className="btn btn-small btn-secondary"
+                                onClick={() => handleEdit(proposal)}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-small btn-danger"
+                              disabled={deletingId === proposal.id}
+                              onClick={() => handleDelete(proposal)}
+                            >
+                              {deletingId === proposal.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -360,6 +420,15 @@ const ProposalsList = () => {
           onApprove={handleApprove}
           onReject={handleReject}
           onClose={() => setSelectedProposal(null)}
+        />
+      )}
+
+      {editingProposal && (
+        <EditProposalDialog
+          proposal={editingProposal}
+          categories={categories}
+          onSubmit={handleEditSubmit}
+          onClose={() => setEditingProposal(null)}
         />
       )}
     </>

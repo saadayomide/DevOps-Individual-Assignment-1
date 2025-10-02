@@ -127,7 +127,7 @@ const Login = () => {
             <button 
               type="button"
               className="btn btn-secondary quick-btn"
-              onClick={() => handleQuickLogin('test', 'test')}
+              onClick={() => handleQuickLogin('finance', 'fin')}
             >
               <span>💰</span>
               Finance User
@@ -135,15 +135,15 @@ const Login = () => {
             <button 
               type="button"
               className="btn btn-secondary quick-btn"
-              onClick={() => handleQuickLogin('ministry', 'ministry')}
+              onClick={() => handleQuickLogin('ministry', 'min')}
             >
               <span>🏢</span>
               Ministry User
             </button>
           </div>
           <div className="credentials-info">
-            <p><strong>Finance:</strong> username: test, password: test</p>
-            <p><strong>Ministry:</strong> username: ministry, password: ministry</p>
+            <p><strong>Finance:</strong> username: finance, password: fin</p>
+            <p><strong>Ministry:</strong> username: ministry, password: min</p>
           </div>
         </div>
       </div>

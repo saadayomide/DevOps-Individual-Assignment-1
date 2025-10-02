@@ -25,17 +25,17 @@ class Category(CategoryBase):
 # ------------------ Phase 2: Proposal Schemas ------------------
 
 class ProposalBase(BaseModel):
-    ministry: str
     category_id: int
     title: str
     description: Optional[str] = None
     requested_amount: float
 
 class ProposalCreate(ProposalBase):
-    pass
+    ministry_id: Optional[int] = None  # Either ministry_id or ministry_name
+    ministry_name: Optional[str] = None  # Either ministry_id or ministry_name
 
 class ProposalUpdate(BaseModel):
-    ministry: Optional[str] = None
+    ministry_id: Optional[int] = None
     category_id: Optional[int] = None
     title: Optional[str] = None
     description: Optional[str] = None
@@ -67,12 +67,28 @@ class ProposalDelete(BaseModel):
 
 
 
+# Ministry Models
+class MinistryBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class MinistryCreate(MinistryBase):
+    pass
+
+class Ministry(MinistryBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Authentication Models
 class UserBase(BaseModel):
     username: str
     email: str
     role: str  # "ministry" or "finance"
-    ministry: Optional[str] = None
+    ministry_id: Optional[int] = None
 
 class UserCreate(UserBase):
     password: str
@@ -85,6 +101,7 @@ class User(UserBase):
     id: int
     is_active: bool
     created_at: datetime
+    ministry: Optional[Ministry] = None  # Include ministry relationship
 
     class Config:
         from_attributes = True

@@ -64,7 +64,20 @@ const CategoryManager = () => {
     setError(null);
 
     try {
-      const budget = parseFloat(formData.allocated_budget);
+      // Validate name
+      if (!formData.name.trim()) {
+        setError('Category name is required.');
+        return;
+      }
+
+      // Validate budget
+      const budgetString = (formData.allocated_budget || '').toString().trim();
+      if (!budgetString) {
+        setError('Allocated budget is required.');
+        return;
+      }
+
+      const budget = parseFloat(budgetString);
       if (isNaN(budget) || budget <= 0) {
         setError('Allocated budget must be a number greater than 0.');
         return;
@@ -118,8 +131,8 @@ const CategoryManager = () => {
   const handleEdit = (category) => {
     setEditingCategory(category);
     setFormData({
-      name: category.name,
-      allocated_budget: category.allocated_budget.toString()
+      name: category.name || '',
+      allocated_budget: category.allocated_budget ? category.allocated_budget.toString() : ''
     });
     setShowForm(true);
   };
@@ -253,14 +266,14 @@ const CategoryManager = () => {
           <div className="form-group">
             <label htmlFor="allocated_budget">Allocated Budget</label>
             <input
-              type="number"
+              type="text"
               id="allocated_budget"
               name="allocated_budget"
               value={formData.allocated_budget}
               onChange={handleInputChange}
               placeholder="e.g., 1000000"
-              min="1"
-              step="1000"
+              pattern="[0-9]*"
+              inputMode="numeric"
               required
             />
           </div>

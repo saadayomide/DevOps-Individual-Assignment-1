@@ -14,8 +14,8 @@ import io
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal, User as DBUser
-from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject, ProposalDelete
+from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal, User as DBUser, Ministry as DBMinistry
+from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject, ProposalDelete, Ministry, MinistryCreate
 
 # Create FastAPI app
 app = FastAPI(title="Government Spending Tracker", version="1.0.0")
@@ -50,9 +50,15 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     if user_data.role not in ["ministry", "finance"]:
         raise HTTPException(status_code=400, detail="Role must be 'ministry' or 'finance'")
     
-    # Validate ministry field for ministry users
-    if user_data.role == "ministry" and not user_data.ministry:
-        raise HTTPException(status_code=400, detail="Ministry field is required for ministry users")
+    # Validate ministry_id for ministry users
+    if user_data.role == "ministry" and not user_data.ministry_id:
+        raise HTTPException(status_code=400, detail="Ministry ID is required for ministry users")
+    
+    # Validate ministry exists if provided
+    if user_data.ministry_id:
+        ministry = db.query(DBMinistry).filter(DBMinistry.id == user_data.ministry_id).first()
+        if not ministry:
+            raise HTTPException(status_code=400, detail="Invalid ministry ID")
     
     # Create new user
     hashed_password = get_password_hash(user_data.password)
@@ -61,7 +67,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         email=user_data.email,
         hashed_password=hashed_password,
         role=user_data.role,
-        ministry=user_data.ministry
+        ministry_id=user_data.ministry_id
     )
     db.add(db_user)
     db.commit()
@@ -89,8 +95,13 @@ def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
     }
 
 @app.get("/auth/me", response_model=UserModel)
-def get_current_user_info(current_user: DBUser = Depends(get_current_user)):
+def get_current_user_info(current_user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get current user information."""
+    # Load ministry relationship if user has ministry_id
+    if current_user.ministry_id:
+        from sqlalchemy.orm import joinedload
+        user_with_ministry = db.query(DBUser).options(joinedload(DBUser.ministry)).filter(DBUser.id == current_user.id).first()
+        return user_with_ministry
     return current_user
 
 
@@ -173,6 +184,54 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Category deleted successfully"}
 
+# ------------------ Ministry Endpoints ------------------
+
+@app.get("/ministries", response_model=List[Ministry])
+def get_ministries(db: Session = Depends(get_db)):
+    """Get all ministries"""
+    ministries = db.query(DBMinistry).filter(DBMinistry.is_active == True).all()
+    return ministries
+
+@app.post("/ministries", response_model=Ministry)
+def create_ministry(ministry: MinistryCreate, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
+    """Create a new ministry (Finance users only)"""
+    # Check if ministry name already exists
+    existing = db.query(DBMinistry).filter(DBMinistry.name == ministry.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Ministry name already exists")
+    
+    db_ministry = DBMinistry(
+        name=ministry.name,
+        description=ministry.description
+    )
+    db.add(db_ministry)
+    db.commit()
+    db.refresh(db_ministry)
+    return db_ministry
+
+@app.post("/ministries/find-or-create", response_model=Ministry)
+def find_or_create_ministry(ministry_name: str, db: Session = Depends(get_db), current_user: DBUser = Depends(get_current_user)):
+    """Find existing ministry or create new one if not found"""
+    if not ministry_name or not ministry_name.strip():
+        raise HTTPException(status_code=400, detail="Ministry name is required")
+    
+    ministry_name = ministry_name.strip()
+    
+    # Check if ministry already exists
+    existing = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
+    if existing:
+        return existing
+    
+    # Create new ministry
+    db_ministry = DBMinistry(
+        name=ministry_name,
+        description=f"Ministry of {ministry_name}"
+    )
+    db.add(db_ministry)
+    db.commit()
+    db.refresh(db_ministry)
+    return db_ministry
+
 # Health check endpoint
 @app.get("/")
 def root():
@@ -183,10 +242,10 @@ def root():
 # ------------------ Phase 2: Proposal Endpoints ------------------
 
 @app.get("/proposals", response_model=List[Proposal])
-def list_proposals(db: Session = Depends(get_db), ministry: str | None = None, category_id: int | None = None, status: str | None = None):
+def list_proposals(db: Session = Depends(get_db), ministry_id: int | None = None, category_id: int | None = None, status: str | None = None):
     query = db.query(DBProposal)
-    if ministry:
-        query = query.filter(DBProposal.ministry == ministry)
+    if ministry_id:
+        query = query.filter(DBProposal.ministry_id == ministry_id)
     if category_id:
         query = query.filter(DBProposal.category_id == category_id)
     if status:
@@ -199,12 +258,39 @@ def create_proposal(payload: ProposalCreate, db: Session = Depends(get_db)):
     category = db.query(DBCategory).filter(DBCategory.id == payload.category_id).first()
     if not category:
         raise HTTPException(status_code=400, detail="Category does not exist")
+    
+    # Handle ministry - either by ID or name
+    ministry = None
+    if payload.ministry_id:
+        # Find ministry by ID
+        ministry = db.query(DBMinistry).filter(DBMinistry.id == payload.ministry_id).first()
+        if not ministry:
+            raise HTTPException(status_code=400, detail="Ministry does not exist")
+    elif payload.ministry_name:
+        # Find or create ministry by name
+        ministry_name = payload.ministry_name.strip()
+        if not ministry_name:
+            raise HTTPException(status_code=400, detail="Ministry name cannot be empty")
+        
+        # Check if ministry exists (case-insensitive)
+        ministry = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
+        if not ministry:
+            # Create new ministry
+            ministry = DBMinistry(
+                name=ministry_name,
+                description=f"Ministry of {ministry_name}"
+            )
+            db.add(ministry)
+            db.flush()  # Get the ID
+    else:
+        raise HTTPException(status_code=400, detail="Either ministry_id or ministry_name is required")
+    
     # Validate amount
     if payload.requested_amount is None or payload.requested_amount <= 0:
         raise HTTPException(status_code=400, detail="Requested amount must be greater than 0")
 
     proposal = DBProposal(
-        ministry=payload.ministry,
+        ministry_id=ministry.id,
         category_id=payload.category_id,
         title=payload.title,
         description=payload.description,
@@ -328,8 +414,26 @@ def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db), 
         q = db.query(DBCategory).filter(DBCategory.name.ilike(f"%{category_name}%")).first()
         return q.id if q else None
 
+    def map_ministry_id(ministry_name: str | None):
+        if not ministry_name:
+            return None
+        q = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
+        if q:
+            return q.id
+        q = db.query(DBMinistry).filter(DBMinistry.name.ilike(f"%{ministry_name}%")).first()
+        if q:
+            return q.id
+        # Create new ministry if not found
+        new_ministry = DBMinistry(
+            name=ministry_name,
+            description=f"Ministry of {ministry_name}"
+        )
+        db.add(new_ministry)
+        db.flush()
+        return new_ministry.id
+
     def normalize_record(r: dict):
-        ministry = r.get('ministry') or r.get('dept') or r.get('ministry_name')
+        ministry_name = r.get('ministry') or r.get('dept') or r.get('ministry_name')
         category_name = r.get('category') or r.get('category_name') or r.get('dept_category')
         title = r.get('title') or r.get('project') or r.get('subject')
         description = r.get('description') or r.get('details')
@@ -341,8 +445,9 @@ def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db), 
         except Exception:
             requested_amount = None
         category_id = map_category_id(category_name)
+        ministry_id = map_ministry_id(ministry_name)
         errors = []
-        if not ministry:
+        if not ministry_name:
             errors.append('missing ministry')
         if not title:
             errors.append('missing title')
@@ -351,16 +456,17 @@ def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db), 
         if category_id is None:
             errors.append('unknown category')
         dup = None
-        if ministry and title and requested_amount is not None:
+        if ministry_id and title and requested_amount is not None:
             dup = db.query(DBProposal).filter(
-                DBProposal.ministry == ministry,
+                DBProposal.ministry_id == ministry_id,
                 DBProposal.title == title,
                 DBProposal.requested_amount == requested_amount,
             ).first()
             if dup:
                 errors.append('possible duplicate')
         return {
-            'ministry': ministry,
+            'ministry_name': ministry_name,
+            'ministry_id': ministry_id,
             'category_id': category_id,
             'category_name': category_name,
             'title': title,
@@ -419,24 +525,20 @@ def dashboard_summary(db: Session = Depends(get_db), current_user: DBUser = Depe
         })
 
     # Per-ministry aggregates (requested vs approved)
-    requested = dict(
-        db.query(DBProposal.ministry, func.coalesce(func.sum(DBProposal.requested_amount), 0.0))
-          .group_by(DBProposal.ministry)
-          .all()
-    )
-    approved_by_ministry = dict(
-        db.query(DBProposal.ministry, func.coalesce(func.sum(DBProposal.approved_amount), 0.0))
-          .filter(DBProposal.status == "Approved")
-          .group_by(DBProposal.ministry)
-          .all()
-    )
-    ministries = sorted(set(list(requested.keys()) + list(approved_by_ministry.keys())))
+    from sqlalchemy.orm import joinedload
+    ministry_proposals = db.query(DBMinistry).options(joinedload(DBMinistry.proposals)).all()
+    
     ministry_stats = []
-    for m in ministries:
+    for ministry in ministry_proposals:
+        proposals = ministry.proposals
+        requested_total = sum(p.requested_amount for p in proposals)
+        approved_total = sum(p.approved_amount for p in proposals if p.status == "Approved" and p.approved_amount)
+        
         ministry_stats.append({
-            "ministry": m,
-            "requested_total": float(requested.get(m, 0.0) or 0.0),
-            "approved_total": float(approved_by_ministry.get(m, 0.0) or 0.0),
+            "ministry_id": ministry.id,
+            "ministry_name": ministry.name,
+            "requested_total": float(requested_total),
+            "approved_total": float(approved_total),
         })
 
     # Overall KPIs

@@ -5,7 +5,6 @@ const HistoryView = () => {
   const [proposals, setProposals] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ 
-    ministry: '', 
     category_id: '', 
     status: '', 
     date_from: '', 

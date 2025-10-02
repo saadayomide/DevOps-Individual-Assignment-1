@@ -23,6 +23,24 @@ api.interceptors.request.use(
   }
 );
 
+// Ministry API functions
+export const ministryAPI = {
+  getAll: async () => {
+    const response = await api.get('/ministries');
+    return response.data;
+  },
+  create: async (ministry) => {
+    const response = await api.post('/ministries', ministry);
+    return response.data;
+  },
+  findOrCreate: async (ministryName) => {
+    const response = await api.post('/ministries/find-or-create', null, {
+      params: { ministry_name: ministryName }
+    });
+    return response.data;
+  }
+};
+
 // Category API functions
 export const categoryAPI = {
   getAll: async () => {

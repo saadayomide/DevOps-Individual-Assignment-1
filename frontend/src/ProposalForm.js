@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { proposalAPI, categoryAPI } from './api';
+import { proposalAPI, categoryAPI, ministryAPI } from './api';
+import { useUser } from './UserContext';
 
 const ProposalForm = ({ onCreated }) => {
+  const { user } = useUser();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
-    ministry: '',
+    ministry_name: '',
     category_id: '',
     title: '',
     description: '',
@@ -21,7 +23,7 @@ const ProposalForm = ({ onCreated }) => {
     e.preventDefault();
     setError(null);
     // Client-side validation
-    if (!form.ministry || !form.title || !form.category_id || !form.requested_amount) {
+    if (!form.ministry_name || !form.title || !form.category_id || !form.requested_amount) {
       setError('Please fill all required fields.');
       return;
     }
@@ -32,13 +34,13 @@ const ProposalForm = ({ onCreated }) => {
     }
     try {
       await proposalAPI.create({
-        ministry: form.ministry,
+        ministry_name: form.ministry_name,
         category_id: parseInt(form.category_id, 10),
         title: form.title,
         description: form.description || null,
         requested_amount: amount,
       });
-      setForm({ ministry: '', category_id: '', title: '', description: '', requested_amount: '' });
+      setForm({ ministry_name: '', category_id: '', title: '', description: '', requested_amount: '' });
       onCreated && onCreated();
     } catch (e) {
       // Handle different error formats
@@ -75,13 +77,22 @@ const ProposalForm = ({ onCreated }) => {
         const cats = await categoryAPI.getAll();
         setCategories(cats);
       } catch (e) {
-        // ignore
+        console.error('Failed to load categories:', e);
       }
     };
+    
+    reload(); // Load categories immediately
     const handler = () => reload();
     window.addEventListener('categories-updated', handler);
     return () => window.removeEventListener('categories-updated', handler);
   }, []);
+
+  // Set default ministry name when user loads
+  useEffect(() => {
+    if (user?.ministry?.name && !form.ministry_name) {
+      setForm(prev => ({ ...prev, ministry_name: user.ministry.name }));
+    }
+  }, [user, form.ministry_name]);
 
   return (
     <div className="form-container">
@@ -90,7 +101,13 @@ const ProposalForm = ({ onCreated }) => {
       <form onSubmit={onSubmit}>
         <div className="form-group">
           <label>Ministry</label>
-          <input name="ministry" value={form.ministry} onChange={onChange} placeholder="e.g., Health" required />
+          <input 
+            name="ministry_name" 
+            value={form.ministry_name} 
+            onChange={onChange}
+            placeholder={user?.ministry?.name || "Enter ministry name"} 
+            required
+          />
         </div>
         <div className="form-group">
           <label>Category</label>
