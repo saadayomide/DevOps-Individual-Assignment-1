@@ -1,7 +1,9 @@
-ministry,category,title,description,requested_amount
+ministry_name,category,title,description,requested_amount
 Ministry of Education,Education,Teacher Training Program,Professional development for 500 teachers,750000
-Ministry of Health,Health,Emergency Response Vehicles,Ambulances and emergency medical vehicles,1500000
+Ministry of Health,Healthcare,Emergency Response Vehicles,Ambulances and emergency medical vehicles,1500000
 Ministry of Defense,Defense,Border Security Enhancement,Advanced surveillance and monitoring systems,2800000
-Ministry of Education,Education,Library Modernization,Digital library systems and book procurement,600000
-Ministry of Health,Health,Telemedicine Network,Remote healthcare consultation platform,900000
-Ministry of Defense,Defense,Training Facility Upgrade,Modern training centers for military personnel,2200000
+Ministry of Transportation,Infrastructure,Highway Construction Project,New highway connecting major cities,4500000
+Ministry of Social Welfare,Social Services,Community Development Centers,Establishing centers for vulnerable populations,1800000
+Ministry of Agriculture,Education,Agricultural Education Initiative,Training programs for modern farming techniques,950000
+Ministry of Technology,Infrastructure,Digital Infrastructure Upgrade,National broadband network expansion,3200000
+Ministry of Environment,Social Services,Environmental Protection Program,Conservation and sustainability initiatives,1200000

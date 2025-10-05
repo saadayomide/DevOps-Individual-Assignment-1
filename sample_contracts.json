@@ -1,44 +1,58 @@
 [
   {
-    "ministry": "Ministry of Education",
+    "ministry_name": "Ministry of Education",
     "category": "Education",
     "title": "Primary School Infrastructure Development",
     "description": "Construction of 50 new classrooms across rural areas to improve access to quality education",
     "requested_amount": 2500000
   },
   {
-    "ministry": "Ministry of Health",
-    "category": "Health",
+    "ministry_name": "Ministry of Health",
+    "category": "Healthcare",
     "title": "Medical Equipment Procurement",
     "description": "Purchase of advanced diagnostic equipment for 10 regional hospitals",
     "requested_amount": 1800000
   },
   {
-    "ministry": "Ministry of Defense",
+    "ministry_name": "Ministry of Defense",
     "category": "Defense",
     "title": "Military Vehicle Maintenance",
     "description": "Annual maintenance and repair of military vehicles and equipment",
     "requested_amount": 3200000
   },
   {
-    "ministry": "Ministry of Education",
-    "category": "Education",
-    "title": "Digital Learning Platform",
-    "description": "Development and deployment of online learning management system for universities",
-    "requested_amount": 950000
+    "ministry_name": "Ministry of Transportation",
+    "category": "Infrastructure",
+    "title": "Urban Transit System",
+    "description": "Development of modern public transportation network for major cities",
+    "requested_amount": 5500000
   },
   {
-    "ministry": "Ministry of Health",
-    "category": "Health",
-    "title": "Vaccination Program Expansion",
-    "description": "Expanding vaccination coverage to remote areas with mobile health units",
-    "requested_amount": 1200000
+    "ministry_name": "Ministry of Social Welfare",
+    "category": "Social Services",
+    "title": "Homeless Shelter Network",
+    "description": "Establishing comprehensive shelter and support services for homeless population",
+    "requested_amount": 2100000
   },
   {
-    "ministry": "Ministry of Defense",
-    "category": "Defense",
+    "ministry_name": "Ministry of Technology",
+    "category": "Infrastructure",
     "title": "Cybersecurity Infrastructure",
     "description": "Upgrading national cybersecurity systems and training personnel",
-    "requested_amount": 2100000
+    "requested_amount": 2800000
+  },
+  {
+    "ministry_name": "Ministry of Environment",
+    "category": "Social Services",
+    "title": "Renewable Energy Initiative",
+    "description": "Solar and wind energy projects for sustainable development",
+    "requested_amount": 4200000
+  },
+  {
+    "ministry_name": "Ministry of Agriculture",
+    "category": "Education",
+    "title": "Rural Education Program",
+    "description": "Educational initiatives for rural communities and farming families",
+    "requested_amount": 1500000
   }
 ]
