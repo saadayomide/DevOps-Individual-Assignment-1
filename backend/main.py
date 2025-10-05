@@ -320,8 +320,11 @@ def update_proposal(proposal_id: int, payload: ProposalUpdate, db: Session = Dep
     if proposal.status != "Pending":
         raise HTTPException(status_code=400, detail="Only pending proposals can be edited in Phase 2")
 
-    if payload.ministry is not None:
-        proposal.ministry = payload.ministry
+    if payload.ministry_id is not None:
+        ministry = db.query(DBMinistry).filter(DBMinistry.id == payload.ministry_id).first()
+        if not ministry:
+            raise HTTPException(status_code=400, detail="Ministry does not exist")
+        proposal.ministry_id = payload.ministry_id
     if payload.category_id is not None:
         category = db.query(DBCategory).filter(DBCategory.id == payload.category_id).first()
         if not category:
