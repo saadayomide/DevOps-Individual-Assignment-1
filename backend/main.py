@@ -243,7 +243,8 @@ def root():
 
 @app.get("/proposals", response_model=List[Proposal])
 def list_proposals(db: Session = Depends(get_db), ministry_id: int | None = None, category_id: int | None = None, status: str | None = None):
-    query = db.query(DBProposal)
+    from sqlalchemy.orm import joinedload
+    query = db.query(DBProposal).options(joinedload(DBProposal.ministry))
     if ministry_id:
         query = query.filter(DBProposal.ministry_id == ministry_id)
     if category_id:
@@ -304,7 +305,8 @@ def create_proposal(payload: ProposalCreate, db: Session = Depends(get_db)):
 
 @app.get("/proposals/{proposal_id}", response_model=Proposal)
 def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
+    from sqlalchemy.orm import joinedload
+    proposal = db.query(DBProposal).options(joinedload(DBProposal.ministry)).filter(DBProposal.id == proposal_id).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
     return proposal

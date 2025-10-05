@@ -13,6 +13,7 @@ const ProposalForm = ({ onCreated }) => {
     requested_amount: ''
   });
   const [error, setError] = useState(null);
+  const [defaultMinistrySet, setDefaultMinistrySet] = useState(false);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -41,6 +42,7 @@ const ProposalForm = ({ onCreated }) => {
         requested_amount: amount,
       });
       setForm({ ministry_name: '', category_id: '', title: '', description: '', requested_amount: '' });
+      setDefaultMinistrySet(false); // Reset flag so default ministry can be set again
       onCreated && onCreated();
     } catch (e) {
       // Handle different error formats
@@ -87,12 +89,13 @@ const ProposalForm = ({ onCreated }) => {
     return () => window.removeEventListener('categories-updated', handler);
   }, []);
 
-  // Set default ministry name when user loads
+  // Set default ministry name when user loads (only once)
   useEffect(() => {
-    if (user?.ministry?.name && !form.ministry_name) {
+    if (user?.ministry?.name && !defaultMinistrySet) {
       setForm(prev => ({ ...prev, ministry_name: user.ministry.name }));
+      setDefaultMinistrySet(true);
     }
-  }, [user, form.ministry_name]);
+  }, [user, defaultMinistrySet]);
 
   return (
     <div className="form-container">

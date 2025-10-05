@@ -80,7 +80,7 @@ const ContractUpload = ({ onCreated }) => {
       setDrafts(prev => prev.map((x, i) => i === idx ? { ...x, isCreating: true } : x));
 
       await proposalAPI.create({
-        ministry: d.ministry,
+        ministry_name: d.ministry_name,
         category_id: d.category_id,
         title: d.title,
         description: d.description || null,
@@ -153,7 +153,7 @@ const ContractUpload = ({ onCreated }) => {
               {drafts.map((d, i) => (
                 <tr key={i}>
                   <td>{d.valid ? 'Yes' : 'No'}</td>
-                  <td>{d.ministry || '-'}</td>
+                  <td>{d.ministry_name || '-'}</td>
                   <td>{d.category_name || '-'}</td>
                   <td>{d.title || '-'}</td>
                   <td>{d.requested_amount != null ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(d.requested_amount) : '-'}</td>

@@ -348,7 +348,7 @@ const ProposalsList = () => {
                         <span className="proposal-id">#{proposal.id}</span>
                       </td>
                       <td>
-                        <span className="ministry-name">{proposal.ministry}</span>
+                        <span className="ministry-name">{proposal.ministry?.name || 'Unknown'}</span>
                       </td>
                       <td>
                         <span className="category-name">

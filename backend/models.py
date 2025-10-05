@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 # Pydantic models for API
 class CategoryBase(BaseModel):
@@ -49,6 +49,7 @@ class Proposal(ProposalBase):
     decision_notes: str | None = None
     decided_at: datetime | None = None
     created_at: datetime
+    ministry: Optional['Ministry'] = None
 
     class Config:
         from_attributes = True
