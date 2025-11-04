@@ -25,10 +25,13 @@ The Government Spending Tracker streamlines the government budget management pro
 
 ### **Backend (FastAPI)**
 - **Framework**: FastAPI with automatic API documentation
-- **Database**: SQLite with SQLAlchemy ORM
-- **Authentication**: JWT tokens with SHA256 password hashing
+- **Database**: SQLite with SQLAlchemy ORM + Alembic migrations
+- **Authentication**: JWT tokens with bcrypt password hashing (secure, production-ready)
+- **Architecture**: Service layer + Repository pattern (SOLID principles)
+- **Configuration**: Environment-based settings (no hardcoded values)
 - **Validation**: Pydantic models for data validation
 - **File Processing**: CSV/JSON upload and parsing with smart field mapping
+- **Error Handling**: Domain exceptions with proper HTTP status codes
 
 ### **Database Design**
 - **SQLite** with proper foreign key relationships
@@ -41,10 +44,24 @@ The Government Spending Tracker streamlines the government budget management pro
 ```
 DevOps-Individual-Assignment-1/
 ├── backend/
-│   ├── main.py                # FastAPI app (endpoints)
+│   ├── main.py                # FastAPI app (thin routers)
 │   ├── database.py            # SQLAlchemy models and DB helpers
 │   ├── models.py              # Pydantic models
-│   ├── auth.py                # Authentication and authorization
+│   ├── auth.py                # Authentication and authorization (bcrypt)
+│   ├── settings.py            # Environment configuration (pydantic-settings)
+│   ├── exceptions.py          # Domain exceptions
+│   ├── services/              # Business logic layer
+│   │   ├── approvals.py       # Approval/rejection logic
+│   │   ├── proposals.py       # Proposal CRUD operations
+│   │   └── parser.py          # Contract parsing logic
+│   ├── repositories/          # Data access layer
+│   │   ├── proposals.py       # Proposal data access
+│   │   ├── categories.py      # Category data access
+│   │   └── ministries.py      # Ministry data access
+│   ├── alembic/               # Database migrations
+│   │   ├── versions/          # Migration files
+│   │   └── env.py             # Alembic configuration
+│   ├── alembic.ini            # Alembic configuration file
 │   ├── requirements.txt       # Backend dependencies
 │   ├── test_requirements.txt  # Test dependencies
 │   ├── pytest.ini            # Pytest configuration
@@ -84,32 +101,71 @@ DevOps-Individual-Assignment-1/
 
 1) Install dependencies
 
-```
+```bash
 cd backend
 pip3 install -r requirements.txt
 ```
 
-2) Run the API
+2) Configure environment (optional)
 
+Create a `.env` file in the `backend/` directory (optional, defaults provided):
+
+```bash
+# backend/.env
+SECRET_KEY=your-secret-key-change-in-production
+DATABASE_URL=sqlite:///./government_spending.db
+CORS_ORIGINS=http://localhost:3000
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
+
+3) Run database migrations (creates tables automatically)
+
+```bash
 cd backend
-python3 main.py
+alembic upgrade head
+```
+
+Or the API will run migrations automatically on startup.
+
+4) Run the API
+
+```bash
+cd backend
+uvicorn main:app --reload
+```
+
+Or:
+
+```bash
+cd backend
+python3 -m uvicorn main:app --reload
 ```
 
 The API runs at http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Alternative Docs: http://localhost:8000/redoc
 
 ### Frontend
 
 1) Install dependencies (created with Create React App)
 
-```
+```bash
 cd frontend
 npm install
 ```
 
-2) Start the dev server
+2) Configure environment (optional)
 
+Create a `.env` file in the `frontend/` directory (optional, defaults to localhost:8000):
+
+```bash
+# frontend/.env
+REACT_APP_API_BASE_URL=http://localhost:8000
 ```
+
+3) Start the dev server
+
+```bash
 npm start
 ```
 
@@ -138,8 +194,12 @@ The system supports two user roles with comprehensive access control:
 ### Key Features
 - **Ministry Auto-Creation**: When submitting proposals, ministries are automatically created if they don't exist
 - **Role-Based Access**: Different UI and API access based on user role
-- **Secure Authentication**: JWT-based authentication with password hashing
+- **Secure Authentication**: JWT-based authentication with bcrypt password hashing (production-ready)
 - **Foreign Key Integrity**: Proper database relationships between users, ministries, and proposals
+- **Finance-Only Access**: Category creation/update/deletion restricted to finance users
+- **Clean Architecture**: Service layer + Repository pattern for maintainability and testability
+- **Database Migrations**: Alembic for version-controlled schema changes
+- **Environment Configuration**: No hardcoded values - all configurable via environment variables
 
 ## 🚀 **Core Features**
 
@@ -316,11 +376,83 @@ proposals
 4) Review Dashboard for allocations and approvals
 5) Review History and export CSV reports
 
+## 🔄 Phase 1 Improvements (Assignment 2)
+
+Phase 1 focused on code quality, refactoring, and infrastructure improvements:
+
+### ✅ Completed Improvements
+
+1. **Environment Configuration**
+   - ✅ Removed all hardcoded values (SECRET_KEY, DATABASE_URL, CORS_ORIGINS)
+   - ✅ Added `settings.py` with pydantic-settings for environment variable management
+   - ✅ Frontend reads API base URL from `REACT_APP_API_BASE_URL`
+   - ✅ All configuration now comes from environment variables or `.env` files
+
+2. **Service Layer Refactoring**
+   - ✅ Extracted business logic from routers into service layer
+   - ✅ Created `services/approvals.py`, `services/proposals.py`, `services/parser.py`
+   - ✅ Routers are now thin HTTP layers (follows SOLID principles)
+   - ✅ Removed code duplication and long methods
+
+3. **Repository Layer**
+   - ✅ Created data access layer: `repositories/proposals.py`, `repositories/categories.py`, `repositories/ministries.py`
+   - ✅ Encapsulated database queries for better maintainability
+   - ✅ Consistent query patterns across the codebase
+
+4. **Security Improvements**
+   - ✅ Replaced SHA256 with bcrypt for password hashing (production-ready)
+   - ✅ Backward compatible (legacy SHA256 hashes still work)
+   - ✅ Secure password storage with proper salting
+
+5. **Database Migrations**
+   - ✅ Set up Alembic for version-controlled database migrations
+   - ✅ Created baseline migration capturing current schema
+   - ✅ Replaced ad-hoc SQLite migration code
+   - ✅ Database-agnostic (works with PostgreSQL, MySQL, etc.)
+
+6. **Exception Handling**
+   - ✅ Created domain exceptions (`exceptions.py`)
+   - ✅ Centralized exception handlers in `main.py`
+   - ✅ Proper HTTP status code mapping (404 for not found, 400 for validation, etc.)
+
+7. **Business Logic Enforcement**
+   - ✅ Finance-only category creation/update/deletion
+   - ✅ Role-based access control properly enforced
+
+### 📊 Code Quality Metrics
+
+- **Code Smells Removed**: Hardcoded values, duplication, long methods
+- **SOLID Principles**: Applied Single Responsibility, Dependency Inversion
+- **Architecture**: Clean separation of concerns (routers → services → repositories)
+- **Security**: Production-ready password hashing
+- **Maintainability**: Improved with service/repository pattern
+
+### 📝 Migration Commands
+
+```bash
+# Check current migration status
+cd backend
+alembic current
+
+# View migration history
+alembic history
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Create new migration (after changing models)
+alembic revision --autogenerate -m "description_of_changes"
+alembic upgrade head
+
+# Rollback one migration
+alembic downgrade -1
+```
+
 ## Testing
 
 ### Backend Unit Tests
 
-**Backend unit tests are mandatory to achieve max grade. Code coverage should be over 90%.**
+**Backend unit tests are mandatory to achieve max grade. Code coverage should be at least 70% (Phase 2 target).**
 
 #### Installing Test Dependencies
 

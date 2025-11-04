@@ -1,12 +1,11 @@
-import sqlite3
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+from settings import settings
 
 # Database setup
-DATABASE_URL = "sqlite:///./government_spending.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -78,16 +77,31 @@ class Proposal(Base):
 # Create tables
 
 def create_tables():
-    """Create all database tables including the new Ministry table."""
+    """
+    Create all database tables using Alembic migrations and seed default data.
+    
+    This function:
+    1. Runs Alembic migrations to ensure schema is up-to-date
+    2. Creates default ministries and users if they don't exist
+    """
+    from alembic.config import Config
+    from alembic import command
     from database import User as DBUser, Ministry as DBMinistry
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    from auth import get_password_hash
+    
+    # Run Alembic migrations to ensure schema is up-to-date
+    try:
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        print("Database migrations applied successfully")
+    except Exception as e:
+        # If migrations fail, fall back to creating tables directly
+        # This is useful for initial setup or if Alembic isn't configured
+        print(f"Warning: Alembic migration failed: {e}")
+        print("Falling back to direct table creation...")
+        Base.metadata.create_all(bind=engine)
     
     # Create default ministries and users if they don't exist
-    from auth import get_password_hash
-    from sqlalchemy.orm import sessionmaker
-    
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
     
     try:
@@ -132,32 +146,6 @@ def create_tables():
         db.rollback()
     finally:
         db.close()
-
-    # Lightweight migration for SQLite: add new columns if missing
-    try:
-        conn = sqlite3.connect(engine.url.database)
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(proposals)")
-        cols = {row[1] for row in cur.fetchall()}
-        migrations = []
-        if "approved_amount" not in cols:
-            migrations.append("ALTER TABLE proposals ADD COLUMN approved_amount REAL")
-        if "decision_notes" not in cols:
-            migrations.append("ALTER TABLE proposals ADD COLUMN decision_notes TEXT")
-        if "decided_at" not in cols:
-            migrations.append("ALTER TABLE proposals ADD COLUMN decided_at DATETIME")
-        for sql in migrations:
-            cur.execute(sql)
-        if migrations:
-            conn.commit()
-    except Exception as e:
-        # Best-effort; on failure, proceed (dev environment)
-        pass
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
 
 # Database dependency
 

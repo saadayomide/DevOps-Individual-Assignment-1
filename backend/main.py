@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
+from fastapi.responses import JSONResponse
 from datetime import timedelta
 from auth import (
     authenticate_user, create_access_token, get_current_user, 
@@ -8,19 +9,34 @@ from models import UserCreate, UserLogin, Token, User as UserModel
 from sqlalchemy.orm import Session
 from typing import List
 import uvicorn
-import csv
-import json
-import io
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import get_db, create_tables, Category as DBCategory, Proposal as DBProposal, User as DBUser, Ministry as DBMinistry
 from models import Category, CategoryCreate, CategoryUpdate, Proposal, ProposalCreate, ProposalUpdate, ProposalApprove, ProposalReject, ProposalDelete, Ministry, MinistryCreate
+from settings import settings
+
+# Import services and exceptions
+from services.approvals import ApprovalService
+from services.proposals import ProposalService
+from services.parser import ContractParserService
+from repositories.categories import CategoryRepository
+from repositories.ministries import MinistryRepository
+from exceptions import (
+    ProposalNotFoundError,
+    CategoryNotFoundError,
+    MinistryNotFoundError,
+    InsufficientBudgetError,
+    InvalidProposalStatusError,
+    ValidationError,
+    DuplicateCategoryError,
+    DuplicateMinistryError
+)
 
 # Create FastAPI app
-app = FastAPI(title="Government Spending Tracker", version="1.0.0")
+app = FastAPI(title=settings.API_TITLE, version=settings.API_VERSION)
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +46,63 @@ app.add_middleware(CORSMiddleware,
 @app.on_event("startup")
 def startup_event():
     create_tables()
+
+# Exception handler to convert domain errors to HTTP responses
+@app.exception_handler(ProposalNotFoundError)
+async def proposal_not_found_handler(request: Request, exc: ProposalNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(CategoryNotFoundError)
+async def category_not_found_handler(request: Request, exc: CategoryNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(MinistryNotFoundError)
+async def ministry_not_found_handler(request: Request, exc: MinistryNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(InsufficientBudgetError)
+async def insufficient_budget_handler(request: Request, exc: InsufficientBudgetError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(InvalidProposalStatusError)
+async def invalid_status_handler(request: Request, exc: InvalidProposalStatusError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(ValidationError)
+async def validation_error_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(DuplicateCategoryError)
+async def duplicate_category_handler(request: Request, exc: DuplicateCategoryError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
+
+@app.exception_handler(DuplicateMinistryError)
+async def duplicate_ministry_handler(request: Request, exc: DuplicateMinistryError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)}
+    )
 
 # ------------------ Authentication Endpoints ------------------
 
@@ -84,7 +157,7 @@ def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=30)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
@@ -113,42 +186,49 @@ def startup_event():
 @app.get("/categories", response_model=List[Category])
 def get_categories(db: Session = Depends(get_db)):
     """Get all budget categories"""
-    categories = db.query(DBCategory).all()
-    return categories
+    return CategoryRepository.get_all(db)
 
 @app.post("/categories", response_model=Category)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
-    """Create a new budget category"""
+def create_category(
+    category: CategoryCreate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
+    """Create a new budget category (Finance users only)"""
     # Check if category name already exists
-    existing = db.query(DBCategory).filter(DBCategory.name == category.name).first()
+    existing = CategoryRepository.get_by_name(db, category.name)
     if existing:
-        raise HTTPException(status_code=400, detail="Category name already exists")
+        raise DuplicateCategoryError("Category name already exists")
     
     # Create new category with remaining_budget = allocated_budget initially
-    db_category = DBCategory(
-        name=category.name,
-        allocated_budget=category.allocated_budget,
-        remaining_budget=category.allocated_budget
-    )
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    return db_category
+    category_data = {
+        "name": category.name,
+        "allocated_budget": category.allocated_budget,
+        "remaining_budget": category.allocated_budget
+    }
+    return CategoryRepository.create(db, category_data)
 
 @app.get("/categories/{category_id}", response_model=Category)
 def get_category(category_id: int, db: Session = Depends(get_db)):
     """Get a specific category by ID"""
-    category = db.query(DBCategory).filter(DBCategory.id == category_id).first()
+    category = CategoryRepository.get_by_id(db, category_id)
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise CategoryNotFoundError("Category not found")
     return category
 
 @app.put("/categories/{category_id}", response_model=Category)
-def update_category(category_id: int, category_update: CategoryUpdate, db: Session = Depends(get_db)):
-    """Update a category"""
-    db_category = db.query(DBCategory).filter(DBCategory.id == category_id).first()
+def update_category(
+    category_id: int,
+    category_update: CategoryUpdate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
+    """Update a category (Finance users only)"""
+    db_category = CategoryRepository.get_by_id(db, category_id)
     if not db_category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise CategoryNotFoundError("Category not found")
+    
+    update_data = {}
     
     # Update fields if provided
     if category_update.name is not None:
@@ -158,79 +238,69 @@ def update_category(category_id: int, category_update: CategoryUpdate, db: Sessi
             DBCategory.id != category_id
         ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Category name already exists")
-        db_category.name = category_update.name
+            raise DuplicateCategoryError("Category name already exists")
+        update_data["name"] = category_update.name
     
     if category_update.allocated_budget is not None:
         # Update remaining budget proportionally
         old_allocated = db_category.allocated_budget
         new_allocated = category_update.allocated_budget
         ratio = new_allocated / old_allocated if old_allocated > 0 else 1
-        db_category.remaining_budget = db_category.remaining_budget * ratio
-        db_category.allocated_budget = new_allocated
+        update_data["remaining_budget"] = db_category.remaining_budget * ratio
+        update_data["allocated_budget"] = new_allocated
     
-    db.commit()
-    db.refresh(db_category)
-    return db_category
+    return CategoryRepository.update(db, db_category, update_data)
 
 @app.delete("/categories/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(get_db)):
-    """Delete a category"""
-    db_category = db.query(DBCategory).filter(DBCategory.id == category_id).first()
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
+    """Delete a category (Finance users only)"""
+    db_category = CategoryRepository.get_by_id(db, category_id)
     if not db_category:
-        raise HTTPException(status_code=404, detail="Category not found")
+        raise CategoryNotFoundError("Category not found")
     
-    db.delete(db_category)
-    db.commit()
+    CategoryRepository.delete(db, db_category)
     return {"message": "Category deleted successfully"}
 
 # ------------------ Ministry Endpoints ------------------
 
 @app.get("/ministries", response_model=List[Ministry])
 def get_ministries(db: Session = Depends(get_db)):
-    """Get all ministries"""
-    ministries = db.query(DBMinistry).filter(DBMinistry.is_active == True).all()
-    return ministries
+    """Get all active ministries"""
+    return MinistryRepository.get_all_active(db)
 
 @app.post("/ministries", response_model=Ministry)
-def create_ministry(ministry: MinistryCreate, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
+def create_ministry(
+    ministry: MinistryCreate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
     """Create a new ministry (Finance users only)"""
     # Check if ministry name already exists
-    existing = db.query(DBMinistry).filter(DBMinistry.name == ministry.name).first()
+    existing = MinistryRepository.get_by_name(db, ministry.name)
     if existing:
-        raise HTTPException(status_code=400, detail="Ministry name already exists")
+        raise DuplicateMinistryError("Ministry name already exists")
     
-    db_ministry = DBMinistry(
-        name=ministry.name,
-        description=ministry.description
-    )
-    db.add(db_ministry)
-    db.commit()
-    db.refresh(db_ministry)
-    return db_ministry
+    ministry_data = {
+        "name": ministry.name,
+        "description": ministry.description
+    }
+    return MinistryRepository.create(db, ministry_data)
 
 @app.post("/ministries/find-or-create", response_model=Ministry)
-def find_or_create_ministry(ministry_name: str, db: Session = Depends(get_db), current_user: DBUser = Depends(get_current_user)):
+def find_or_create_ministry(
+    ministry_name: str,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
     """Find existing ministry or create new one if not found"""
     if not ministry_name or not ministry_name.strip():
-        raise HTTPException(status_code=400, detail="Ministry name is required")
+        raise ValidationError("Ministry name is required")
     
-    ministry_name = ministry_name.strip()
-    
-    # Check if ministry already exists
-    existing = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
-    if existing:
-        return existing
-    
-    # Create new ministry
-    db_ministry = DBMinistry(
-        name=ministry_name,
-        description=f"Ministry of {ministry_name}"
-    )
-    db.add(db_ministry)
-    db.commit()
-    db.refresh(db_ministry)
-    return db_ministry
+    return MinistryRepository.find_or_create(db, ministry_name.strip())
 
 # Health check endpoint
 @app.get("/")
@@ -242,266 +312,74 @@ def root():
 # ------------------ Phase 2: Proposal Endpoints ------------------
 
 @app.get("/proposals", response_model=List[Proposal])
-def list_proposals(db: Session = Depends(get_db), ministry_id: int | None = None, category_id: int | None = None, status: str | None = None):
-    from sqlalchemy.orm import joinedload
-    query = db.query(DBProposal).options(joinedload(DBProposal.ministry))
-    if ministry_id:
-        query = query.filter(DBProposal.ministry_id == ministry_id)
-    if category_id:
-        query = query.filter(DBProposal.category_id == category_id)
-    if status:
-        query = query.filter(DBProposal.status == status)
-    return query.order_by(DBProposal.created_at.desc()).all()
+def list_proposals(
+    db: Session = Depends(get_db),
+    ministry_id: int | None = None,
+    category_id: int | None = None,
+    status: str | None = None
+):
+    """List proposals with optional filters."""
+    return ProposalService.list_proposals(db, ministry_id, category_id, status)
 
 @app.post("/proposals", response_model=Proposal)
 def create_proposal(payload: ProposalCreate, db: Session = Depends(get_db)):
-    # Validate category exists
-    category = db.query(DBCategory).filter(DBCategory.id == payload.category_id).first()
-    if not category:
-        raise HTTPException(status_code=400, detail="Category does not exist")
-    
-    # Handle ministry - either by ID or name
-    ministry = None
-    if payload.ministry_id:
-        # Find ministry by ID
-        ministry = db.query(DBMinistry).filter(DBMinistry.id == payload.ministry_id).first()
-        if not ministry:
-            raise HTTPException(status_code=400, detail="Ministry does not exist")
-    elif payload.ministry_name:
-        # Find or create ministry by name
-        ministry_name = payload.ministry_name.strip()
-        if not ministry_name:
-            raise HTTPException(status_code=400, detail="Ministry name cannot be empty")
-        
-        # Check if ministry exists (case-insensitive)
-        ministry = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
-        if not ministry:
-            # Create new ministry
-            ministry = DBMinistry(
-                name=ministry_name,
-                description=f"Ministry of {ministry_name}"
-            )
-            db.add(ministry)
-            db.flush()  # Get the ID
-    else:
-        raise HTTPException(status_code=400, detail="Either ministry_id or ministry_name is required")
-    
-    # Validate amount
-    if payload.requested_amount is None or payload.requested_amount <= 0:
-        raise HTTPException(status_code=400, detail="Requested amount must be greater than 0")
-
-    proposal = DBProposal(
-        ministry_id=ministry.id,
-        category_id=payload.category_id,
-        title=payload.title,
-        description=payload.description,
-        requested_amount=payload.requested_amount,
-        status="Pending",
-    )
-    db.add(proposal)
-    db.commit()
-    db.refresh(proposal)
-    return proposal
+    """Create a new proposal."""
+    return ProposalService.create_proposal(db, payload)
 
 @app.get("/proposals/{proposal_id}", response_model=Proposal)
 def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    from sqlalchemy.orm import joinedload
-    proposal = db.query(DBProposal).options(joinedload(DBProposal.ministry)).filter(DBProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    return proposal
+    """Get a proposal by ID."""
+    return ProposalService.get_proposal(db, proposal_id)
 
 @app.put("/proposals/{proposal_id}", response_model=Proposal)
 def update_proposal(proposal_id: int, payload: ProposalUpdate, db: Session = Depends(get_db)):
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    # Only edits in Pending state in Phase 2
-    if proposal.status != "Pending":
-        raise HTTPException(status_code=400, detail="Only pending proposals can be edited in Phase 2")
-
-    if payload.ministry_id is not None:
-        ministry = db.query(DBMinistry).filter(DBMinistry.id == payload.ministry_id).first()
-        if not ministry:
-            raise HTTPException(status_code=400, detail="Ministry does not exist")
-        proposal.ministry_id = payload.ministry_id
-    if payload.category_id is not None:
-        category = db.query(DBCategory).filter(DBCategory.id == payload.category_id).first()
-        if not category:
-            raise HTTPException(status_code=400, detail="Category does not exist")
-        proposal.category_id = payload.category_id
-    if payload.title is not None:
-        proposal.title = payload.title
-    if payload.description is not None:
-        proposal.description = payload.description
-    if payload.requested_amount is not None:
-        if payload.requested_amount <= 0:
-            raise HTTPException(status_code=400, detail="Requested amount must be greater than 0")
-        proposal.requested_amount = payload.requested_amount
-    # Ignore status changes in Phase 2 unless staying Pending
-    if payload.status is not None and payload.status != "Pending":
-        raise HTTPException(status_code=400, detail="Status changes are not allowed in Phase 2")
-
-    db.commit()
-    db.refresh(proposal)
-    return proposal
+    """Update a proposal (only if status is Pending)."""
+    return ProposalService.update_proposal(db, proposal_id, payload)
 
 @app.delete("/proposals/{proposal_id}")
 def delete_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    if proposal.status != "Pending":
-        raise HTTPException(status_code=400, detail="Only pending proposals can be deleted in Phase 2")
-    db.delete(proposal)
-    db.commit()
+    """Delete a proposal (only if status is Pending)."""
+    ProposalService.delete_proposal(db, proposal_id)
     return {"message": "Proposal deleted successfully"}
 
 
 # ------------------ Phase 3: Approval Endpoints ------------------
 
 @app.post("/proposals/{proposal_id}/approve", response_model=Proposal)
-def approve_proposal(proposal_id: int, body: ProposalApprove, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    if proposal.status != "Pending":
-        raise HTTPException(status_code=400, detail="Only pending proposals can be approved")
-    if body.approved_amount is None or body.approved_amount <= 0:
-        raise HTTPException(status_code=400, detail="approved_amount must be > 0")
-    if body.approved_amount > proposal.requested_amount:
-        raise HTTPException(status_code=400, detail="approved_amount exceeds requested amount")
-    category = db.query(DBCategory).filter(DBCategory.id == proposal.category_id).with_for_update(nowait=False).first()
-    if not category:
-        raise HTTPException(status_code=400, detail="Category does not exist")
-    if body.approved_amount > category.remaining_budget:
-        raise HTTPException(status_code=400, detail="Insufficient remaining budget")
-    # Apply decision atomically
-    category.remaining_budget = category.remaining_budget - body.approved_amount
-    proposal.status = "Approved"
-    proposal.approved_amount = body.approved_amount
-    proposal.decision_notes = body.decision_notes
-    proposal.decided_at = datetime.utcnow()
-    db.commit()
-    db.refresh(proposal)
-    return proposal
+def approve_proposal(
+    proposal_id: int,
+    body: ProposalApprove,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
+    """Approve a proposal (Finance users only)."""
+    return ApprovalService.approve_proposal(
+        db, proposal_id, body.approved_amount, body.decision_notes
+    )
 
 @app.post("/proposals/{proposal_id}/reject", response_model=Proposal)
-def reject_proposal(proposal_id: int, body: ProposalReject, db: Session = Depends(get_db), current_user: DBUser = Depends(require_finance_role)):
-    proposal = db.query(DBProposal).filter(DBProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    if proposal.status != "Pending":
-        raise HTTPException(status_code=400, detail="Only pending proposals can be rejected")
-    proposal.status = "Rejected"
-    proposal.approved_amount = None
-    proposal.decision_notes = body.decision_notes
-    proposal.decided_at = datetime.utcnow()
-    db.commit()
-    db.refresh(proposal)
-    return proposal
+def reject_proposal(
+    proposal_id: int,
+    body: ProposalReject,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_finance_role)
+):
+    """Reject a proposal (Finance users only)."""
+    return ApprovalService.reject_proposal(
+        db, proposal_id, body.decision_notes
+    )
 
 
 # ------------------ Phase 4: Contract Upload & Parsing ------------------
 
 @app.post("/contracts/parse")
-def parse_contract(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: DBUser = Depends(require_ministry_role)):
-    filename = file.filename or ""
-    content = file.file.read()
-    drafts = []
-
-    def map_category_id(category_name: str | None):
-        if not category_name:
-            return None
-        q = db.query(DBCategory).filter(DBCategory.name.ilike(category_name)).first()
-        if q:
-            return q.id
-        q = db.query(DBCategory).filter(DBCategory.name.ilike(f"%{category_name}%")).first()
-        return q.id if q else None
-
-    def map_ministry_id(ministry_name: str | None):
-        if not ministry_name:
-            return None
-        q = db.query(DBMinistry).filter(DBMinistry.name.ilike(ministry_name)).first()
-        if q:
-            return q.id
-        q = db.query(DBMinistry).filter(DBMinistry.name.ilike(f"%{ministry_name}%")).first()
-        if q:
-            return q.id
-        # Create new ministry if not found
-        new_ministry = DBMinistry(
-            name=ministry_name,
-            description=f"Ministry of {ministry_name}"
-        )
-        db.add(new_ministry)
-        db.flush()
-        return new_ministry.id
-
-    def normalize_record(r: dict):
-        ministry_name = r.get('ministry') or r.get('dept') or r.get('ministry_name')
-        category_name = r.get('category') or r.get('category_name') or r.get('dept_category')
-        title = r.get('title') or r.get('project') or r.get('subject')
-        description = r.get('description') or r.get('details')
-        amount = r.get('requested_amount')
-        if amount in (None, ''):
-            amount = r.get('amount') or r.get('value') or r.get('requested')
-        try:
-            requested_amount = float(amount) if amount not in (None, '') else None
-        except Exception:
-            requested_amount = None
-        category_id = map_category_id(category_name)
-        ministry_id = map_ministry_id(ministry_name)
-        errors = []
-        if not ministry_name:
-            errors.append('missing ministry')
-        if not title:
-            errors.append('missing title')
-        if requested_amount is None or requested_amount <= 0:
-            errors.append('invalid amount')
-        if category_id is None:
-            errors.append('unknown category')
-        dup = None
-        if ministry_id and title and requested_amount is not None:
-            dup = db.query(DBProposal).filter(
-                DBProposal.ministry_id == ministry_id,
-                DBProposal.title == title,
-                DBProposal.requested_amount == requested_amount,
-            ).first()
-            if dup:
-                errors.append('possible duplicate')
-        return {
-            'ministry_name': ministry_name,
-            'ministry_id': ministry_id,
-            'category_id': category_id,
-            'category_name': category_name,
-            'title': title,
-            'description': description,
-            'requested_amount': requested_amount,
-            'errors': errors,
-            'valid': len(errors) == 0,
-        }
-
-    try:
-        if filename.lower().endswith('.json'):
-            import json
-            data = json.loads(content.decode('utf-8'))
-            records = data if isinstance(data, list) else [data]
-            for r in records:
-                drafts.append(normalize_record(r))
-        elif filename.lower().endswith('.csv'):
-            import csv, io
-            text = content.decode('utf-8')
-            reader = csv.DictReader(io.StringIO(text))
-            for r in reader:
-                drafts.append(normalize_record(r))
-        else:
-            raise HTTPException(status_code=400, detail='Unsupported file type. Use .json or .csv')
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f'Failed to parse file: {str(e)}')
-
-    return {'drafts': drafts}
+def parse_contract(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_ministry_role)
+):
+    """Parse a contract file (CSV or JSON) and return normalized draft proposals (Ministry users only)."""
+    return ContractParserService.parse_contract(db, file)
 
 
 # ------------------ Phase 5: Dashboard Summary ------------------
