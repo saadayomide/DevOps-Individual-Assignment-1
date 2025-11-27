@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, cast
+from typing import cast
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -59,7 +59,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 def authenticate_user(db: Session, username: str, password: str) -> DBUser | None:
     """Authenticate a user with username and password."""
-    user: Optional[DBUser] = db.query(DBUser).filter(DBUser.username == username).first()
+    user: DBUser | None = db.query(DBUser).filter(DBUser.username == username).first()
     if not user:
         print(f"[AUTH] Login failed: user '{username}' not found")
         return None
@@ -90,7 +90,7 @@ def get_current_user(
     except JWTError:
         raise credentials_exception from None
 
-    user: Optional[DBUser] = (
+    user: DBUser | None = (
         db.query(DBUser).filter(DBUser.username == token_data.username).first()
     )
     if user is None:

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 import uvicorn
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
@@ -258,7 +258,7 @@ def update_category(
     if not db_category:
         raise CategoryNotFoundError("Category not found")
 
-    update_data: Dict[str, Any] = {}
+    update_data: dict[str, Any] = {}
 
     # Update fields if provided
     if category_update.name is not None:
@@ -464,7 +464,7 @@ def dashboard_summary(
         .group_by(DBProposal.category_id)
         .all()
     )
-    approved_sums: Dict[int, float] = {
+    approved_sums: dict[int, float] = {
         int(category_id): float(total or 0.0) for category_id, total in rows
     }
     category_stats = []
