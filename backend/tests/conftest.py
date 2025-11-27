@@ -17,8 +17,10 @@ from auth import get_password_hash
 from database import Base, get_db
 from main import app
 
-# Create test database
-TEST_DB_FILE = tempfile.mktemp(suffix=".db")
+# Create test database using a secure temporary file
+tmp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+TEST_DB_FILE = tmp_db.name
+tmp_db.close()
 TEST_ENGINE = create_engine(f"sqlite:///{TEST_DB_FILE}", connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=TEST_ENGINE)
 

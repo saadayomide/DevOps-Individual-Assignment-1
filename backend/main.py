@@ -1,4 +1,6 @@
 from datetime import timedelta
+import logging
+import os
 from typing import Any, cast
 
 import uvicorn
@@ -520,4 +522,10 @@ def dashboard_summary(
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8000"))
+    if host == "0.0.0.0":  # nosec B104 - container deployments override HOST intentionally
+        logging.warning(
+            "Running with host=0.0.0.0; ensure this is expected for production deployments."
+        )
+    uvicorn.run(app, host=host, port=port)
