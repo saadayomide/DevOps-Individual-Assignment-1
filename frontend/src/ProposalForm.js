@@ -98,9 +98,10 @@ const ProposalForm = ({ onCreated }) => {
   }, [user, defaultMinistrySet]);
 
   return (
-    <div className="form-container">
-      <h3>Submit Proposal</h3>
-      {error && <div className="error">{error}</div>}
+    <div className="card">
+      <h2 className="page-title">Submit Proposal</h2>
+      <p className="page-description">Create a new budget proposal for approval</p>
+      {error && <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
       <form onSubmit={onSubmit}>
         <div className="form-group">
           <label>Ministry</label>

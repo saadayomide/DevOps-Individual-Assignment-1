@@ -189,16 +189,21 @@ const CategoryManager = () => {
   if (loading) {
     return (
       <div className="card">
-        <h2>Category Management</h2>
-        <div className="loading">Loading categories...</div>
+        <h2 className="page-title">Category Management</h2>
+        <p className="page-description">Manage budget categories and allocations</p>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <span>Loading categories...</span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <h2>Category Management</h2>
-      {error && <div className="error-message">{error}</div>}
+      <h2 className="page-title">Category Management</h2>
+      <p className="page-description">Manage budget categories and allocations</p>
+      {error && <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
 
       {!showForm ? (
         <div>

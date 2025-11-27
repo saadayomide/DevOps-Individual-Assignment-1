@@ -77,16 +77,15 @@ const HistoryView = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'Pending': { icon: '⏳', class: 'status-pending', color: '#f59e0b' },
-      'Approved': { icon: '✅', class: 'status-approved', color: '#10b981' },
-      'Rejected': { icon: '❌', class: 'status-rejected', color: '#ef4444' }
+      'Pending': { class: 'badge-pending', color: '#856404' },
+      'Approved': { class: 'badge-approved', color: '#155724' },
+      'Rejected': { class: 'badge-rejected', color: '#721c24' }
     };
     
-    const config = statusConfig[status] || { icon: '❓', class: 'status-unknown', color: '#6b7280' };
+    const config = statusConfig[status] || { class: 'badge-pending', color: '#6b7280' };
     
     return (
-      <span className={`status-badge ${config.class}`} style={{ backgroundColor: `${config.color}20`, color: config.color }}>
-        <span className="status-icon">{config.icon}</span>
+      <span className={`badge ${config.class}`}>
         {status}
       </span>
     );
@@ -114,59 +113,53 @@ const HistoryView = () => {
   return (
     <div className="card history-card">
       <div className="card-header">
-        <h2>📜 Proposal History</h2>
-        <p>Complete transaction history and approval records</p>
+        <h2 className="page-title">Proposal History</h2>
+        <p className="page-description">Complete transaction history and approval records</p>
       </div>
 
       {/* Statistics Cards */}
-      <div className="history-stats">
-        <div className="stat-card">
-          <div className="stat-icon">📊</div>
+      <div className="history-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Total Proposals</h3>
-            <p>{stats.total}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Proposals</h3>
+            <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{stats.total}</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">⏳</div>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Pending</h3>
-            <p>{stats.pending}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending</h3>
+            <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{stats.pending}</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">✅</div>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Approved</h3>
-            <p>{stats.approved}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Approved</h3>
+            <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{stats.approved}</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">❌</div>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Rejected</h3>
-            <p>{stats.rejected}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rejected</h3>
+            <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{stats.rejected}</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">💰</div>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Total Requested</h3>
-            <p>{formatCurrency(stats.totalRequested)}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Requested</h3>
+            <p style={{ fontSize: '20px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{formatCurrency(stats.totalRequested)}</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon">✅</div>
+        <div className="stat-card" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
           <div className="stat-content">
-            <h3>Total Approved</h3>
-            <p>{formatCurrency(stats.totalApproved)}</p>
+            <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Approved</h3>
+            <p style={{ fontSize: '20px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{formatCurrency(stats.totalApproved)}</p>
           </div>
         </div>
       </div>
 
       {/* Filters */}
       <div className="filters-section">
-        <h3>🔍 Filters</h3>
+        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: 'var(--color-text)' }}>Filters</h3>
         <div className="filters-grid">
           <div className="form-group">
             <label htmlFor="ministry">Ministry</label>
@@ -235,14 +228,10 @@ const HistoryView = () => {
                 Loading...
               </>
             ) : (
-              <>
-                <span>🔍</span>
-                Apply Filters
-              </>
+              'Apply Filters'
             )}
           </button>
           <button className="btn btn-secondary" onClick={clearFilters}>
-            <span>🔄</span>
             Clear Filters
           </button>
         </div>
@@ -250,18 +239,17 @@ const HistoryView = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="error-message">
-          <span>⚠️</span> {error}
+        <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>
+          {error}
         </div>
       )}
 
       {/* Proposals Table */}
       <div className="table-section">
-        <div className="table-header">
-          <h3>📋 Proposal Records</h3>
+        <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>Proposal Records</h3>
           <div className="table-actions">
             <button className="btn btn-secondary btn-small">
-              <span>📊</span>
               Export CSV
             </button>
           </div>
@@ -273,10 +261,9 @@ const HistoryView = () => {
             <span>Loading proposal history...</span>
           </div>
         ) : proposals.length === 0 ? (
-          <div className="no-data">
-            <div className="no-data-icon">📭</div>
-            <h3>No Proposals Found</h3>
-            <p>No proposals match your current filters. Try adjusting your search criteria.</p>
+          <div className="no-data" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text)' }}>No Proposals Found</h3>
+            <p style={{ fontSize: '14px' }}>No proposals match your current filters. Try adjusting your search criteria.</p>
           </div>
         ) : (
           <div className="table-container">

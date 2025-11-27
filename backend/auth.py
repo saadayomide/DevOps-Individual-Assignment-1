@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,6 +14,7 @@ from settings import settings
 
 # Password hashing context - using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 # JWT token scheme
 security = HTTPBearer()
@@ -26,6 +28,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         try:
             return pwd_context.verify(plain_password, hashed_password)
         except Exception:
+            logger.exception("bcrypt verification failed")
             return False
 
     # Fallback to legacy SHA256 for backward compatibility
@@ -57,8 +60,10 @@ def authenticate_user(db: Session, username: str, password: str) -> DBUser | Non
     """Authenticate a user with username and password."""
     user = db.query(DBUser).filter(DBUser.username == username).first()
     if not user:
+        print(f"[AUTH] Login failed: user '{username}' not found")
         return None
     if not verify_password(password, user.hashed_password):
+        print(f"[AUTH] Login failed: invalid password for user '{username}'")
         return None
     return user
 

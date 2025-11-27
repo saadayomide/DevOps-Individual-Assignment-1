@@ -82,10 +82,10 @@ const Dashboard = ({ refreshKey }) => {
     return (
       <div className="card dashboard-card">
         <div className="card-header">
-          <h2>📊 Dashboard</h2>
-          <p>Financial overview and analytics</p>
+          <h2 className="page-title">Dashboard</h2>
+          <p className="page-description">Financial overview and analytics</p>
         </div>
-        <div className="loading">
+        <div className="loading-container">
           <div className="loading-spinner"></div>
           <span>Loading dashboard data...</span>
         </div>
@@ -97,14 +97,13 @@ const Dashboard = ({ refreshKey }) => {
     return (
       <div className="card dashboard-card">
         <div className="card-header">
-          <h2>📊 Dashboard</h2>
-          <p>Financial overview and analytics</p>
+          <h2 className="page-title">Dashboard</h2>
+          <p className="page-description">Financial overview and analytics</p>
         </div>
-        <div className="error-message">
-          <span>⚠️</span> {error}
+        <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '12px' }}>
+          {error}
         </div>
         <button className="btn btn-primary" onClick={load}>
-          <span>🔄</span>
           Retry
         </button>
       </div>
@@ -115,11 +114,11 @@ const Dashboard = ({ refreshKey }) => {
     return (
       <div className="card dashboard-card">
         <div className="card-header">
-          <h2>📊 Dashboard</h2>
-          <p>Financial overview and analytics</p>
+          <h2 className="page-title">Dashboard</h2>
+          <p className="page-description">Financial overview and analytics</p>
         </div>
-        <div className="error-message">
-          <span>📭</span> No data available
+        <div className="loading-container">
+          <span>No data available</span>
         </div>
       </div>
     );
@@ -178,31 +177,27 @@ const Dashboard = ({ refreshKey }) => {
   return (
     <div className="card dashboard-card">
       <div className="card-header">
-        <h2>📊 Dashboard</h2>
-        <p>Financial overview and analytics</p>
+        <h2 className="page-title">Dashboard</h2>
+        <p className="page-description">Financial overview and analytics</p>
       </div>
       
       {/* KPI Summary */}
-      <div className="kpi-summary">
-        <div className="kpi-item">
-          <div className="kpi-icon">💰</div>
-          <h3>Total Allocated</h3>
-          <p>${summary.kpis.total_allocated.toLocaleString()}</p>
+      <div className="kpi-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div className="kpi-item" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Allocated</h3>
+          <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>${summary.kpis.total_allocated.toLocaleString()}</p>
         </div>
-        <div className="kpi-item">
-          <div className="kpi-icon">💳</div>
-          <h3>Total Remaining</h3>
-          <p>${summary.kpis.total_remaining.toLocaleString()}</p>
+        <div className="kpi-item" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Remaining</h3>
+          <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>${summary.kpis.total_remaining.toLocaleString()}</p>
         </div>
-        <div className="kpi-item">
-          <div className="kpi-icon">✅</div>
-          <h3>Total Approved</h3>
+        <div className="kpi-item" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Approved</h3>
           <p>${summary.kpis.total_approved.toLocaleString()}</p>
         </div>
-        <div className="kpi-item">
-          <div className="kpi-icon">📈</div>
-          <h3>Utilization Rate</h3>
-          <p>{((summary.kpis.total_allocated - summary.kpis.total_remaining) / summary.kpis.total_allocated * 100).toFixed(1)}%</p>
+        <div className="kpi-item" style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Utilization Rate</h3>
+          <p style={{ fontSize: '24px', fontWeight: '600', color: 'var(--color-text)', margin: 0 }}>{((summary.kpis.total_allocated - summary.kpis.total_remaining) / summary.kpis.total_allocated * 100).toFixed(1)}%</p>
         </div>
       </div>
 
@@ -210,8 +205,8 @@ const Dashboard = ({ refreshKey }) => {
       <div className="charts-grid">
         <div className="chart-section">
           <div className="chart-header">
-            <h3>📊 Budget by Category</h3>
-            <p>Allocated vs Remaining Budget</p>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px', color: 'var(--color-text)' }}>Budget by Category</h3>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>Allocated vs Remaining Budget</p>
           </div>
           <div className="chart-container">
             <Bar data={categoryChartData} options={chartOptions} />
@@ -220,8 +215,8 @@ const Dashboard = ({ refreshKey }) => {
         
         <div className="chart-section">
           <div className="chart-header">
-            <h3>🏢 Spending by Ministry</h3>
-            <p>Requested vs Approved Amounts</p>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px', color: 'var(--color-text)' }}>Spending by Ministry</h3>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>Requested vs Approved Amounts</p>
           </div>
           <div className="chart-container">
             <Bar data={ministryChartData} options={chartOptions} />

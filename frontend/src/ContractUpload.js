@@ -123,9 +123,10 @@ const ContractUpload = ({ onCreated }) => {
   };
 
   return (
-    <div className="form-container" style={{ marginTop: 20 }}>
-      <h3>Contract Upload</h3>
-      {error && <div className="error">{error}</div>}
+    <div className="card">
+      <h2 className="page-title">Upload Contract</h2>
+      <p className="page-description">Upload a CSV or JSON file to create proposals in bulk</p>
+      {error && <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
       <div className="form-group">
         <input type="file" accept=".json,.csv" onChange={onSelect} />
       </div>

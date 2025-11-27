@@ -55,8 +55,8 @@ const ApprovalDialog = ({ proposal, categories, onApprove, onReject, onClose }) 
           <p>Category remaining: ${category?.remaining_budget?.toLocaleString() || 'N/A'}</p>
           
           {error && (
-            <div className="error-message">
-              <span>⚠️</span> {error}
+            <div style={{ padding: '10px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '15px', fontSize: '14px' }}>
+              {error}
             </div>
           )}
           
@@ -114,8 +114,8 @@ const ApprovalDialog = ({ proposal, categories, onApprove, onReject, onClose }) 
           <p>Requested: ${proposal.requested_amount.toLocaleString()}</p>
           
           {error && (
-            <div className="error-message">
-              <span>⚠️</span> {error}
+            <div style={{ padding: '10px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '15px', fontSize: '14px' }}>
+              {error}
             </div>
           )}
           

@@ -19,13 +19,14 @@ const Header = () => {
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
-          <h1>🏛️ Government Spending Tracker</h1>
-          <p className="header-subtitle">Transparent Budget Management System</p>
+          <h1>Government Spending Tracker</h1>
         </div>
         {user && (
           <div className="header-actions">
-            <button className="btn btn-secondary btn-small logout-btn" onClick={logout}>
-              <span>🚪</span>
+            <span style={{ marginRight: '15px', color: '#666', fontSize: '14px' }}>
+              {user.username} ({user.role})
+            </span>
+            <button className="btn btn-secondary btn-small" onClick={logout}>
               Logout
             </button>
           </div>

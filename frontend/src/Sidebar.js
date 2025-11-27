@@ -8,42 +8,36 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '📊',
       description: 'Financial Overview',
       roles: ['finance']
     },
     {
       id: 'categories',
       label: 'Categories',
-      icon: '📁',
       description: 'Budget Categories',
       roles: ['finance']
     },
     {
       id: 'proposals',
       label: 'Proposals',
-      icon: '📋',
       description: 'All Proposals',
       roles: ['finance', 'ministry']
     },
     {
       id: 'create-proposal',
       label: 'Create Proposal',
-      icon: '➕',
       description: 'New Proposal',
       roles: ['ministry']
     },
     {
       id: 'upload-contract',
       label: 'Upload Contract',
-      icon: '📄',
       description: 'Contract Upload',
       roles: ['ministry']
     },
     {
       id: 'history',
       label: 'History',
-      icon: '📜',
       description: 'Transaction History',
       roles: ['finance', 'ministry']
     }
@@ -68,52 +62,70 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     setActiveTab(itemId);
   };
 
+  // Group items by role for better organization
+  const financeItems = filteredItems.filter(item => item.roles.includes('finance') && !item.roles.includes('ministry'));
+  const ministryItems = filteredItems.filter(item => item.roles.includes('ministry') && !item.roles.includes('finance'));
+  const commonItems = filteredItems.filter(item => item.roles.includes('finance') && item.roles.includes('ministry'));
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <span className="logo-icon">🏛️</span>
-          <div className="logo-text">
-            <h3>GovTracker</h3>
-            <p>Spending Portal</p>
-          </div>
+        <div className="sidebar-user-info">
+          <div className="sidebar-user-name">{user?.username}</div>
+          <div className="sidebar-user-role">{user?.role === 'finance' ? 'Finance Department' : 'Ministry User'}</div>
         </div>
       </div>
-      
       <nav className="sidebar-nav">
-        <div className="nav-section">
-          <h4 className="nav-section-title">Navigation</h4>
-          {filteredItems.map((item) => (
+        {financeItems.length > 0 && (
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Finance</div>
+            {financeItems.map((item) => (
             <button
               key={item.id}
-              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                className={`sidebar-item ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => handleItemClick(item.id)}
               title={item.description}
             >
-              <span className="nav-icon">{item.icon}</span>
-              <div className="nav-content">
-                <span className="nav-label">{item.label}</span>
-                <span className="nav-description">{item.description}</span>
+                <span className="sidebar-item-label">{item.label}</span>
+                <span className="sidebar-item-desc">{item.description}</span>
+              </button>
+            ))}
               </div>
-              {activeTab === item.id && (
-                <div className="nav-indicator"></div>
-              )}
+        )}
+        
+        {ministryItems.length > 0 && (
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Ministry</div>
+            {ministryItems.map((item) => (
+              <button
+                key={item.id}
+                className={`sidebar-item ${activeTab === item.id ? 'active' : ''}`}
+                onClick={() => handleItemClick(item.id)}
+                title={item.description}
+              >
+                <span className="sidebar-item-label">{item.label}</span>
+                <span className="sidebar-item-desc">{item.description}</span>
             </button>
           ))}
         </div>
+        )}
         
-        <div className="nav-section">
-          <h4 className="nav-section-title">User Info</h4>
-          <div className="user-card">
-            <div className="user-avatar">
-              <span>{user?.role === 'finance' ? '💰' : '🏢'}</span>
-            </div>
-            <div className="user-details">
-              <span className="user-name">{user?.username}</span>
-              <span className="user-role">{user?.role === 'finance' ? 'Finance Ministry' : 'Ministry User'}</span>
-            </div>
+        {commonItems.length > 0 && (
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">General</div>
+            {commonItems.map((item) => (
+              <button
+                key={item.id}
+                className={`sidebar-item ${activeTab === item.id ? 'active' : ''}`}
+                onClick={() => handleItemClick(item.id)}
+                title={item.description}
+              >
+                <span className="sidebar-item-label">{item.label}</span>
+                <span className="sidebar-item-desc">{item.description}</span>
+              </button>
+            ))}
           </div>
-        </div>
+        )}
       </nav>
     </div>
   );

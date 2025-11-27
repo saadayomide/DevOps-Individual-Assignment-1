@@ -61,90 +61,71 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h2>🏛️ Government Spending Tracker</h2>
-          <h3>Secure Access Portal</h3>
-          <p>Transparent budget management and proposal tracking</p>
-        </div>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      backgroundColor: '#f5f5f5'
+    }}>
+      <div className="card" style={{ width: '400px', maxWidth: '90%' }}>
+        <h2 style={{ marginBottom: '10px', fontSize: '20px' }}>Government Spending Tracker</h2>
+        <p style={{ color: '#666', marginBottom: '30px', fontSize: '14px' }}>Please sign in to continue</p>
         
-        <form onSubmit={handleSubmit} className="login-form">
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label className="form-label" htmlFor="username">Username</label>
             <input
               type="text"
               id="username"
               name="username"
+              className="form-input"
               value={credentials.username}
               onChange={handleChange}
-              placeholder="Enter your username"
               required
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label className="form-label" htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
               name="password"
+              className="form-input"
               value={credentials.password}
               onChange={handleChange}
-              placeholder="Enter your password"
               required
             />
           </div>
           
           {error && (
-            <div className="error-message">
-              <span>⚠️</span> {error}
+            <div style={{ 
+              padding: '10px', 
+              backgroundColor: '#f8d7da', 
+              color: '#721c24', 
+              borderRadius: '4px',
+              marginBottom: '15px',
+              fontSize: '14px'
+            }}>
+              {error}
             </div>
           )}
           
           <button 
             type="submit" 
-            className="btn btn-primary login-btn" 
+            className="btn btn-primary" 
+            style={{ width: '100%', marginTop: '10px' }}
             disabled={loading}
           >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Authenticating...
-              </>
-            ) : (
-              <>
-                <span>🔐</span>
-                Sign In
-              </>
-            )}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         
-        <div className="login-help">
-          <h4>🚀 Quick Access</h4>
-          <div className="quick-login-buttons">
-            <button 
-              type="button"
-              className="btn btn-secondary quick-btn"
-              onClick={() => handleQuickLogin('finance', 'fin')}
-            >
-              <span>💰</span>
-              Finance User
-            </button>
-            <button 
-              type="button"
-              className="btn btn-secondary quick-btn"
-              onClick={() => handleQuickLogin('ministry', 'min')}
-            >
-              <span>🏢</span>
-              Ministry User
-            </button>
-          </div>
-          <div className="credentials-info">
-            <p><strong>Finance:</strong> username: finance, password: fin</p>
-            <p><strong>Ministry:</strong> username: ministry, password: min</p>
-          </div>
+        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '12px', color: '#666' }}>
+          <p><strong>Test Accounts:</strong></p>
+          <p>Finance: username: finance, password: fin</p>
+          <p>Ministry: username: ministry, password: min</p>
         </div>
       </div>
     </div>

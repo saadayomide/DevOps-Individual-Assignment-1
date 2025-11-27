@@ -4,10 +4,38 @@ from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, St
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
+from urllib.parse import urlparse
+
 from settings import settings
 
 # Database setup
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
+db_url = settings.DATABASE_URL
+parsed_db = urlparse(db_url)
+masked_host = parsed_db.hostname or "unknown"
+masked_db = (parsed_db.path or "/").lstrip("/") or "unknown"
+print(f"[database] Using driver={parsed_db.scheme} host={masked_host} db={masked_db}")
+connect_args = {}
+
+if db_url.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    # For PostgreSQL, add connection pooling and timeout settings
+    connect_args = {
+        "connect_timeout": 10,
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
+
+# Add connection pool settings for better reliability
+engine = create_engine(
+    db_url,
+    connect_args=connect_args,
+    pool_pre_ping=True,  # Verify connections before using them
+    pool_recycle=3600,   # Recycle connections after 1 hour
+    echo=False,          # Set to True for SQL query logging
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

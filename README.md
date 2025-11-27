@@ -25,7 +25,7 @@ The Government Spending Tracker streamlines the government budget management pro
 
 ### **Backend (FastAPI)**
 - **Framework**: FastAPI with automatic API documentation
-- **Database**: SQLite with SQLAlchemy ORM + Alembic migrations
+- **Database**: PostgreSQL (Azure App Service) via SQLAlchemy + Alembic (SQLite fallback for local development)
 - **Authentication**: JWT tokens with bcrypt password hashing (secure, production-ready)
 - **Architecture**: Service layer + Repository pattern (SOLID principles)
 - **Configuration**: Environment-based settings (no hardcoded values)
@@ -34,7 +34,7 @@ The Government Spending Tracker streamlines the government budget management pro
 - **Error Handling**: Domain exceptions with proper HTTP status codes
 
 ### **Database Design**
-- **SQLite** with proper foreign key relationships
+- **PostgreSQL** schema in production (SQLite-compatible for local dev)
 - **4 Core Tables**: ministries, categories, users, proposals
 - **Referential Integrity**: All relationships properly maintained
 - **Auto-creation**: Ministries created automatically during proposal submission
@@ -65,7 +65,7 @@ DevOps-Individual-Assignment-1/
 │   ├── requirements.txt       # Backend dependencies
 │   ├── test_requirements.txt  # Test dependencies
 │   ├── pytest.ini            # Pytest configuration
-│   ├── government_spending.db # SQLite database
+│   ├── government_spending.db # Local SQLite database (dev only)
 │   └── tests/                 # Test suite
 │       ├── conftest.py        # Test fixtures and configuration
 │       ├── test_auth.py       # Authentication tests
@@ -108,12 +108,16 @@ pip3 install -r requirements.txt
 
 2) Configure environment (optional)
 
-Create a `.env` file in the `backend/` directory (optional, defaults provided):
+Create a `.env` file in the `backend/` directory (optional, defaults provided). Postgres is recommended for Azure deployments, SQLite works for local dev:
 
 ```bash
 # backend/.env
 SECRET_KEY=your-secret-key-change-in-production
-DATABASE_URL=sqlite:///./government_spending.db
+# Example Azure PostgreSQL connection string (psycopg 3 driver)
+DATABASE_URL=postgresql+psycopg://db_user:strongpassword@your-pg-host.postgres.database.azure.com:5432/gov_spending?sslmode=require
+
+# Local fallback (optional)
+# DATABASE_URL=sqlite:///./government_spending.db
 CORS_ORIGINS=http://localhost:3000
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
@@ -579,14 +583,14 @@ Phase 3 focuses on automation, containerization, and deployment:
 
 ### 📊 Deliverables
 
-- ✅ `.github/workflows/ci.yml` - CI/CD pipeline configuration (GitHub Actions - optional)
-- ✅ `azure-pipelines.yml` - CI/CD pipeline configuration (Azure DevOps - recommended)
+- ✅ `.github/workflows/ci-cd.yml` - GitHub Actions workflow that builds/tests containers and deploys to Azure App Service
+- ✅ (Removed) Azure DevOps pipeline – superseded by GitHub Actions
 - ✅ `backend/Dockerfile` - Backend containerization (multi-stage)
 - ✅ `frontend/Dockerfile` - Frontend containerization (nginx-based)
 - ✅ `docker-compose.yml` - Local development setup with monitoring
 - ✅ `ops/prometheus/prometheus.yml` - Prometheus configuration
 - ✅ `ops/grafana/` - Grafana dashboard and datasource configuration
-- ✅ `.azure/` - Azure deployment configuration and scripts
+- ✅ `.azure/` - Azure deployment reference docs (service principal + secrets guide)
 - ✅ `/health` endpoint - Health check with database connectivity
 - ✅ `/metrics` endpoint - Prometheus metrics (auto-exposed)
 
@@ -680,7 +684,7 @@ docker build -t gov-spending-frontend:latest --build-arg REACT_APP_API_BASE_URL=
 
 # Run backend container
 docker run -p 8000:8000 \
-  -e DATABASE_URL=sqlite:///./government_spending.db \
+  -e DATABASE_URL=postgresql+psycopg://db_user:strongpassword@your-pg-host.postgres.database.azure.com:5432/gov_spending?sslmode=require \
   -e SECRET_KEY=your-secret-key \
   gov-spending-backend:latest
 
@@ -688,59 +692,37 @@ docker run -p 8000:8000 \
 docker run -p 80:80 gov-spending-frontend:latest
 ```
 
+### 🗄️ Migrating from SQLite to PostgreSQL (Recommended for Azure)
+
+1. **Provision a managed Postgres instance** (e.g., Azure Database for PostgreSQL Flexible Server).
+2. **Collect the connection string** and convert it to SQLAlchemy format:
+   `postgresql+psycopg://<user>:<password>@<host>:5432/<database>?sslmode=require`
+3. **Set `DATABASE_URL`** to that string in:
+   - `backend/.env` (local dev / docker compose)
+   - App Service configuration (`az webapp config appsettings set ... DATABASE_URL=...`)
+4. **Run Alembic migrations** once (`alembic upgrade head`) or let the API apply them on startup.
+5. **Redeploy the backend container**. The application will now persist all data in PostgreSQL.
+
+SQLite remains available for quick local work, but Azure deployments should use PostgreSQL to avoid data loss when containers restart.
+
 ### 🚀 Azure Deployment
 
-The application is configured for deployment to **Azure App Service**. See [`.azure/README.md`](.azure/README.md) for detailed deployment instructions.
+The application is configured for deployment to **Azure App Service**. 
 
-**Quick Deploy (Local - Using .env file):**
-```bash
-# 1. Create .env file (optional but recommended)
-cp .azure/.env.example .azure/.env
-# Edit .azure/.env with your values
+**📦 Container Deployment (Recommended for Assignment):**
+- `backend/Dockerfile` + `frontend/Dockerfile` build deployable containers
+- `.github/workflows/ci-cd.yml` runs tests, builds/pushes both images to your ACR, and updates the Azure App Services with the new tags
+- Add the required GitHub Secrets (`AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, app names, ACR login server/user/password, `BACKEND_IMAGE_NAME`, `FRONTEND_IMAGE_NAME`) so the workflow can authenticate
 
-# 2. Run automated setup script
-./.azure/deploy.sh
+**Optional Alternatives:**
+1. **Azure Deployment Center (Simplest)**
+   - Connect the repo directly in the portal; Azure handles the build
+   - Useful for demos if you don’t want CI/CD pipelines
 
-# Or deploy manually
-cd backend
-az webapp up --name gov-spending-api --resource-group gov-spending-rg
+2. **Manual Azure CLI**
+   - You can still use `az webapp config container set` / `az webapp restart` locally if you need to hotfix outside CI/CD
 
-cd frontend
-npm run build
-az webapp up --name gov-spending-web --resource-group gov-spending-rg
-```
-
-**Local Deployment (Recommended for Development):**
-- ✅ Uses `.azure/.env` file (gitignored, uncommitted)
-- ❌ **NO secrets needed** for local deployment
-- ✅ Simple and straightforward
-- ✅ Full control over deployment
-
-**CI/CD Deployment Options:**
-
-1. **Azure Deployment Center (Simplest - Recommended)**
-   - ✅ Connect GitHub repo in Azure Portal
-   - ❌ No secrets needed
-   - ✅ Automatic deployment on push to `main`
-   - ✅ Easiest setup (5 minutes)
-   - See `.azure/README.md` for setup instructions
-
-2. **Azure DevOps Pipelines (Full CI/CD)**
-   - ✅ Native Azure integration
-   - ✅ Uses Azure Service Connections (secure)
-   - ✅ Full pipeline with tests, builds, deployment
-   - ✅ Best for teams and production
-   - Pipeline file: `azure-pipelines.yml`
-
-3. **GitHub Actions (Alternative)**
-   - ⚠️  GitHub secrets required
-   - ✅ Automatic deployment on push to `main`
-   - ✅ Good GitHub integration
-   - See `.azure/README.md` for setup instructions
-
-**Note:** For Azure deployments, we recommend **Azure Deployment Center** (simplest) or **Azure DevOps Pipelines** (full CI/CD). GitHub Actions is optional.
-
-**📖 Detailed CI/CD Setup Guide:** See [`.azure/CI_CD_DEPLOYMENT_GUIDE.md`](.azure/CI_CD_DEPLOYMENT_GUIDE.md) for step-by-step instructions on setting up CI/CD deployment to Azure.
+> ⚠️ **Important**: Regardless of deployment method, keep `DATABASE_URL` pointing to a managed PostgreSQL instance. Containers will fail health checks without persistent storage.
 
 ## Testing
 

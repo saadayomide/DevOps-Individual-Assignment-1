@@ -206,16 +206,15 @@ const ProposalsList = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'Pending': { icon: '⏳', class: 'status-pending', color: '#f59e0b' },
-      'Approved': { icon: '✅', class: 'status-approved', color: '#10b981' },
-      'Rejected': { icon: '❌', class: 'status-rejected', color: '#ef4444' }
+      'Pending': { class: 'badge-pending', color: '#856404' },
+      'Approved': { class: 'badge-approved', color: '#155724' },
+      'Rejected': { class: 'badge-rejected', color: '#721c24' }
     };
     
-    const config = statusConfig[status] || { icon: '❓', class: 'status-unknown', color: '#6b7280' };
+    const config = statusConfig[status] || { class: 'badge-pending', color: '#6b7280' };
     
     return (
-      <span className={`status-badge ${config.class}`} style={{ backgroundColor: `${config.color}20`, color: config.color }}>
-        <span className="status-icon">{config.icon}</span>
+      <span className={`badge ${config.class}`}>
         {status}
       </span>
     );
@@ -243,12 +242,12 @@ const ProposalsList = () => {
   return (
     <>
       <div className="card">
-        <h2>Pending Proposals</h2>
+        <h2 className="page-title">Pending Proposals</h2>
         <p className="page-description">Review and manage pending budget proposals</p>
         {error && <div className="error-message">{error}</div>}
 
         <div className="filters-section">
-          <h3>🔍 Filters</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: 'var(--color-text)' }}>Filters</h3>
           <div className="filters-grid">
             <div className="form-group">
               <label htmlFor="ministry">Ministry</label>
@@ -303,11 +302,9 @@ const ProposalsList = () => {
           
           <div className="filter-actions">
             <button className="btn btn-primary" onClick={onApplyFilters}>
-              <span>🔍</span>
               Apply Filters
             </button>
             <button className="btn btn-secondary" onClick={onClearFilters}>
-              <span>🔄</span>
               Clear Filters
             </button>
           </div>
@@ -315,14 +312,13 @@ const ProposalsList = () => {
 
         <div className="table-section">
           <div className="table-header">
-            <h3>📋 All Proposals</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: 'var(--color-text)' }}>All Proposals</h3>
           </div>
 
           {proposals.length === 0 ? (
-            <div className="no-data">
-              <div className="no-data-icon">📭</div>
-              <h3>No Proposals Found</h3>
-              <p>No proposals match your current filters. Try adjusting your search criteria.</p>
+            <div className="no-data" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text)' }}>No Proposals Found</h3>
+              <p style={{ fontSize: '14px' }}>No proposals match your current filters. Try adjusting your search criteria.</p>
             </div>
           ) : (
             <div className="table-container">

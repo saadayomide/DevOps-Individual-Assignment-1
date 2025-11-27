@@ -1,0 +1,175 @@
+name: CI / CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18.x"
+  BACKEND_IMAGE_NAME: ${{ secrets.BACKEND_IMAGE_NAME }}
+  FRONTEND_IMAGE_NAME: ${{ secrets.FRONTEND_IMAGE_NAME }}
+  ACR_LOGIN_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Ruff
+        run: |
+          cd backend
+          ruff check .
+
+      - name: Mypy
+        run: |
+          cd backend
+          mypy . --ignore-missing-imports
+
+      - name: Bandit
+        run: |
+          cd backend
+          bandit -r . -ll
+
+      - name: Pytest
+        run: |
+          cd backend
+          pytest --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=70 -v
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd frontend
+          npm test -- --ci --coverage --watchAll=false
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs:
+      - backend-tests
+      - frontend-tests
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Build backend image
+        run: |
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:latest \
+                       -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+                       backend
+
+      - name: Build frontend image
+        run: |
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:latest \
+                       -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+                       --build-arg REACT_APP_API_BASE_URL=https://${{ secrets.AZURE_BACKEND_APP_NAME }}.azurewebsites.net \
+                       frontend
+
+      - name: Push backend image
+        run: |
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:latest
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Push frontend image
+        run: |
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Publish image tags
+        id: images
+        run: |
+          echo "backend=${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+          echo "frontend=${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure backend container
+        run: |
+          az webapp config container set \
+            --name ${{ secrets.AZURE_BACKEND_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --container-image-name ${{ env.ACR_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            --container-registry-url https://${{ env.ACR_LOGIN_SERVER }} \
+            --container-registry-user ${{ secrets.AZURE_ACR_USERNAME }} \
+            --container-registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Restart backend
+        run: |
+          az webapp restart \
+            --name ${{ secrets.AZURE_BACKEND_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure frontend container
+        run: |
+          az webapp config container set \
+            --name ${{ secrets.AZURE_FRONTEND_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --container-image-name ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            --container-registry-url https://${{ env.ACR_LOGIN_SERVER }} \
+            --container-registry-user ${{ secrets.AZURE_ACR_USERNAME }} \
+            --container-registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Restart frontend
+        run: |
+          az webapp restart \
+            --name ${{ secrets.AZURE_FRONTEND_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }}
+
