@@ -74,15 +74,15 @@ instrumentator.instrument(app).expose(app)
 @app.on_event("startup")
 def startup_event():
     import traceback
+
     try:
         print("[startup] Starting database initialization...")
-    create_tables()
+        create_tables()
         print("[startup] Database initialization completed successfully")
     except Exception as e:
         print(f"[startup] ERROR: Database initialization failed: {e}")
         print(f"[startup] Traceback: {traceback.format_exc()}")
-        # Don't crash the app - allow it to start even if DB init fails
-        # The app will fail on first DB request, but at least we can see the error
+        # Don't swallow the exception; let FastAPI crash so health probes fail fast
         raise
 
 
@@ -137,26 +137,26 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(DBUser).filter(DBUser.username == user_data.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
-    
+
     # Check if email already exists
     existing_email = db.query(DBUser).filter(DBUser.email == user_data.email).first()
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     # Validate role
     if user_data.role not in ["ministry", "finance"]:
         raise HTTPException(status_code=400, detail="Role must be 'ministry' or 'finance'")
-    
+
     # Validate ministry_id for ministry users
     if user_data.role == "ministry" and not user_data.ministry_id:
         raise HTTPException(status_code=400, detail="Ministry ID is required for ministry users")
-    
+
     # Validate ministry exists if provided
     if user_data.ministry_id:
         ministry = db.query(DBMinistry).filter(DBMinistry.id == user_data.ministry_id).first()
         if not ministry:
             raise HTTPException(status_code=400, detail="Invalid ministry ID")
-    
+
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     db_user = DBUser(
@@ -226,7 +226,7 @@ def create_category(
     existing = CategoryRepository.get_by_name(db, category.name)
     if existing:
         raise DuplicateCategoryError("Category name already exists")
-    
+
     # Create new category with remaining_budget = allocated_budget initially
     category_data = {
         "name": category.name,
@@ -258,7 +258,7 @@ def update_category(
         raise CategoryNotFoundError("Category not found")
 
     update_data = {}
-    
+
     # Update fields if provided
     if category_update.name is not None:
         # Check if new name already exists (excluding current category)
@@ -270,7 +270,7 @@ def update_category(
         if existing:
             raise DuplicateCategoryError("Category name already exists")
         update_data["name"] = category_update.name
-    
+
     if category_update.allocated_budget is not None:
         # Update remaining budget proportionally
         old_allocated = db_category.allocated_budget
@@ -292,7 +292,7 @@ def delete_category(
     db_category = CategoryRepository.get_by_id(db, category_id)
     if not db_category:
         raise CategoryNotFoundError("Category not found")
-    
+
     CategoryRepository.delete(db, db_category)
     return {"message": "Category deleted successfully"}
 
@@ -362,7 +362,7 @@ def health_check(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail=f"Service unhealthy: Database connection failed - {str(e)}",
-        )
+        ) from e
 
 
 # ------------------ Phase 2: Proposal Endpoints ------------------
@@ -479,7 +479,7 @@ def dashboard_summary(
     from sqlalchemy.orm import joinedload
 
     ministry_proposals = db.query(DBMinistry).options(joinedload(DBMinistry.proposals)).all()
-    
+
     ministry_stats = []
     for ministry in ministry_proposals:
         proposals = ministry.proposals
@@ -487,7 +487,7 @@ def dashboard_summary(
         approved_total = sum(
             p.approved_amount for p in proposals if p.status == "Approved" and p.approved_amount
         )
-        
+
         ministry_stats.append(
             {
             "ministry_id": ministry.id,

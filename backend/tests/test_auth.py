@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -184,8 +184,6 @@ class TestCurrentUser:
 
     def test_get_current_user_expired_token(self, test_db, sample_user):
         """Test getting current user with expired token"""
-        # Create an expired token
-        expired_time = datetime.utcnow() - timedelta(hours=1)
         token = create_access_token({"sub": "testuser"}, expires_delta=timedelta(hours=-1))
 
         credentials = HTTPBearer()

@@ -1,10 +1,9 @@
 from datetime import datetime
+from urllib.parse import urlparse
 
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-
-from urllib.parse import urlparse
 
 from settings import settings
 
