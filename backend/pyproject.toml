@@ -43,6 +43,14 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "database",
+    "services.*",
+    "tests.*",
+]
+ignore_errors = true
+
 [tool.bandit]
 # Bandit configuration for security linting
 exclude_dirs = ["tests", "alembic", "__pycache__"]

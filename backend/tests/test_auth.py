@@ -9,7 +9,7 @@ backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
 from fastapi import HTTPException
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
 
 from auth import (
     authenticate_user,
@@ -151,9 +151,8 @@ class TestCurrentUser:
         # Create a valid token
         token = create_access_token({"sub": "testuser"})
 
-        # Mock the HTTPBearer dependency
-        credentials = HTTPBearer()
-        credentials.credentials = token
+        # Mock the HTTPAuthorizationCredentials dependency
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         user = get_current_user(credentials, test_db)
 
@@ -162,8 +161,7 @@ class TestCurrentUser:
 
     def test_get_current_user_invalid_token(self, test_db):
         """Test getting current user with invalid token"""
-        credentials = HTTPBearer()
-        credentials.credentials = "invalid_token"
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="invalid_token")
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(credentials, test_db)
@@ -174,8 +172,7 @@ class TestCurrentUser:
         """Test getting current user with valid token but nonexistent user"""
         token = create_access_token({"sub": "nonexistent"})
 
-        credentials = HTTPBearer()
-        credentials.credentials = token
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(credentials, test_db)
@@ -186,8 +183,7 @@ class TestCurrentUser:
         """Test getting current user with expired token"""
         token = create_access_token({"sub": "testuser"}, expires_delta=timedelta(hours=-1))
 
-        credentials = HTTPBearer()
-        credentials.credentials = token
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(credentials, test_db)

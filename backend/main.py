@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any, Dict, cast
 
 import uvicorn
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
@@ -257,7 +258,7 @@ def update_category(
     if not db_category:
         raise CategoryNotFoundError("Category not found")
 
-    update_data = {}
+    update_data: Dict[str, Any] = {}
 
     # Update fields if provided
     if category_update.name is not None:
@@ -273,10 +274,11 @@ def update_category(
 
     if category_update.allocated_budget is not None:
         # Update remaining budget proportionally
-        old_allocated = db_category.allocated_budget
-        new_allocated = category_update.allocated_budget
+        old_allocated = float(db_category.allocated_budget or 0.0)
+        new_allocated = float(category_update.allocated_budget or 0.0)
         ratio = new_allocated / old_allocated if old_allocated > 0 else 1
-        update_data["remaining_budget"] = db_category.remaining_budget * ratio
+        remaining_budget = float(db_category.remaining_budget or 0.0)
+        update_data["remaining_budget"] = remaining_budget * ratio
         update_data["allocated_budget"] = new_allocated
 
     return CategoryRepository.update(db, db_category, update_data)
@@ -456,18 +458,22 @@ def dashboard_summary(
     # Sum approved amounts grouped by category_id
     from sqlalchemy import func
 
-    approved_sums = dict(
+    rows = (
         db.query(DBProposal.category_id, func.coalesce(func.sum(DBProposal.approved_amount), 0.0))
-          .filter(DBProposal.status == "Approved")
-          .group_by(DBProposal.category_id)
-          .all()
+        .filter(DBProposal.status == "Approved")
+        .group_by(DBProposal.category_id)
+        .all()
     )
+    approved_sums: Dict[int, float] = {
+        int(category_id): float(total or 0.0) for category_id, total in rows
+    }
     category_stats = []
     for c in categories:
-        approved_total = float(approved_sums.get(c.id, 0.0) or 0.0)
+        category_id = cast(int, c.id)
+        approved_total = float(approved_sums.get(category_id, 0.0) or 0.0)
         category_stats.append(
             {
-            "id": c.id,
+            "id": category_id,
             "name": c.name,
             "allocated_budget": float(c.allocated_budget),
             "remaining_budget": float(c.remaining_budget),

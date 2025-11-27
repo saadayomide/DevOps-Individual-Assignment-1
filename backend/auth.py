@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Optional, cast
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -58,11 +59,12 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 def authenticate_user(db: Session, username: str, password: str) -> DBUser | None:
     """Authenticate a user with username and password."""
-    user = db.query(DBUser).filter(DBUser.username == username).first()
+    user: Optional[DBUser] = db.query(DBUser).filter(DBUser.username == username).first()
     if not user:
         print(f"[AUTH] Login failed: user '{username}' not found")
         return None
-    if not verify_password(password, user.hashed_password):
+    hashed_password = cast(str, user.hashed_password)
+    if not verify_password(password, hashed_password):
         print(f"[AUTH] Login failed: invalid password for user '{username}'")
         return None
     return user
@@ -88,31 +90,29 @@ def get_current_user(
     except JWTError:
         raise credentials_exception from None
 
-    user = db.query(DBUser).filter(DBUser.username == token_data.username).first()
+    user: Optional[DBUser] = (
+        db.query(DBUser).filter(DBUser.username == token_data.username).first()
+    )
     if user is None:
         raise credentials_exception
     return user
 
 
-def require_role(required_role: str):
-    """Decorator to require a specific role."""
-
-    def role_checker(current_user: DBUser = Depends(get_current_user)) -> DBUser:
-        if current_user.role != required_role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required role: {required_role}",
-            )
-        return current_user
-
-    return role_checker
-
-
 def require_finance_role(current_user: DBUser = Depends(get_current_user)) -> DBUser:
     """Require finance role."""
-    return require_role("finance")(current_user)
+    if current_user.role != "finance":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Required role: finance",
+        )
+    return current_user
 
 
 def require_ministry_role(current_user: DBUser = Depends(get_current_user)) -> DBUser:
     """Require ministry role."""
-    return require_role("ministry")(current_user)
+    if current_user.role != "ministry":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Required role: ministry",
+        )
+    return current_user
