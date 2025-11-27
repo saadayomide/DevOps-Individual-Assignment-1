@@ -13,3 +13,6 @@ ruff==0.6.9
 mypy==1.11.2
 bandit==1.7.9
 types-passlib==1.7.7
+
+# Monitoring (Phase 3)
+prometheus-fastapi-instrumentator==7.0.0

@@ -34,6 +34,8 @@ ENV/
 .env
 .env.local
 .env.*.local
+.azure/.env
+.azure/*-publish-profile.xml
 
 # IDE
 .vscode/

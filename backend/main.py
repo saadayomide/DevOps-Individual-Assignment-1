@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.orm import Session
 
 from auth import (
@@ -63,6 +64,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add Prometheus metrics instrumentation
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
 
 # Create database tables on startup
@@ -324,6 +329,30 @@ def find_or_create_ministry(
 @app.get("/")
 def root():
     return {"message": "Government Spending Tracker API"}
+
+
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """
+    Health check endpoint that verifies:
+    - API is running
+    - Database is accessible
+    Returns 200 if healthy, 503 if unhealthy
+    """
+    try:
+        # Check database connectivity
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "service": "Government Spending Tracker API",
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Service unhealthy: Database connection failed - {str(e)}",
+        )
 
 
 # ------------------ Phase 2: Proposal Endpoints ------------------

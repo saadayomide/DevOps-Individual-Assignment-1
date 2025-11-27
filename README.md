@@ -144,6 +144,13 @@ python3 -m uvicorn main:app --reload
 The API runs at http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 - Alternative Docs: http://localhost:8000/redoc
+- Health Check: http://localhost:8000/health
+- Metrics: http://localhost:8000/metrics
+
+**Or use Docker Compose (recommended for Phase 3):**
+```bash
+docker-compose up -d
+```
 
 ### Frontend
 
@@ -525,6 +532,215 @@ mypy . --ignore-missing-imports
 # Run bandit (security)
 bandit -r . -ll
 ```
+
+## 🔄 Phase 3: CI/CD & Deployment (Assignment 2)
+
+Phase 3 focuses on automation, containerization, and deployment:
+
+### ✅ Completed Improvements
+
+1. **CI/CD Pipeline (GitHub Actions)**
+   - ✅ Automated testing on pull requests and pushes
+   - ✅ Coverage reporting and enforcement (≥70%)
+   - ✅ Linting checks (ruff, mypy, bandit)
+   - ✅ Build and test both backend and frontend
+   - ✅ Docker image building
+   - ✅ Deployment automation ready (main branch only)
+
+2. **Docker Containerization**
+   - ✅ Multi-stage Dockerfile for backend (optimized image size)
+   - ✅ Dockerfile for frontend (nginx-based)
+   - ✅ Docker Compose for local development with Prometheus & Grafana
+   - ✅ Environment variable configuration
+   - ✅ Health checks in containers
+
+3. **Monitoring & Health Checks**
+   - ✅ `/health` endpoint with database connectivity check
+   - ✅ Prometheus metrics endpoint (`/metrics`)
+   - ✅ Request count, latency, and error metrics
+   - ✅ Grafana dashboard configuration
+   - ✅ Prometheus configuration for metrics collection
+
+4. **Azure Deployment**
+   - ✅ Azure App Service configuration for backend and frontend
+   - ✅ GitHub Actions CI/CD pipeline updated for Azure deployment
+   - ✅ Deployment scripts and documentation
+   - ✅ Environment variable configuration
+   - ⚪ **E2E tests with Playwright** (optional, can be added here for full browser testing)
+   - ⚪ Performance testing
+   - ⚪ Load testing
+
+### 🎯 Phase 3 Goals
+
+- **Automation**: CI/CD pipeline runs tests, builds, and deploys automatically
+- **Containerization**: Docker images for reproducible deployments
+- **Monitoring**: Health checks and metrics for production visibility
+- **Deployment**: Automated deployment to cloud platform
+
+### 📊 Deliverables
+
+- ✅ `.github/workflows/ci.yml` - CI/CD pipeline configuration (GitHub Actions - optional)
+- ✅ `azure-pipelines.yml` - CI/CD pipeline configuration (Azure DevOps - recommended)
+- ✅ `backend/Dockerfile` - Backend containerization (multi-stage)
+- ✅ `frontend/Dockerfile` - Frontend containerization (nginx-based)
+- ✅ `docker-compose.yml` - Local development setup with monitoring
+- ✅ `ops/prometheus/prometheus.yml` - Prometheus configuration
+- ✅ `ops/grafana/` - Grafana dashboard and datasource configuration
+- ✅ `.azure/` - Azure deployment configuration and scripts
+- ✅ `/health` endpoint - Health check with database connectivity
+- ✅ `/metrics` endpoint - Prometheus metrics (auto-exposed)
+
+### 🔧 Phase 3 Components Explained
+
+#### **CI/CD Pipeline (GitHub Actions)**
+
+**What it does:**
+- Runs automatically on every pull request and push to main branch
+- Executes tests, linting, and security checks
+- Builds Docker images
+- Deploys to cloud platform (main branch only)
+
+**Why it's important:**
+- Catches bugs before merging
+- Ensures code quality standards
+- Automates deployment process
+- Provides feedback on code changes
+
+#### **Docker Containerization**
+
+**What it does:**
+- Packages application into containers (isolated environments)
+- Ensures consistent behavior across different machines
+- Makes deployment easier and more reliable
+
+**Why it's important:**
+- "Works on my machine" → "Works everywhere"
+- Consistent environment for development and production
+- Easier scaling and deployment
+
+#### **Monitoring & Health Checks**
+
+**What it does:**
+- `/health` endpoint checks if application is running and database is accessible
+- `/metrics` endpoint provides Prometheus metrics (request count, latency, errors)
+- Grafana dashboard visualizes metrics
+
+**Why it's important:**
+- Know if application is healthy
+- Monitor performance and errors
+- Detect issues before users do
+- Track application usage
+
+#### **E2E Tests (Optional)**
+
+**What it does:**
+- Tests full user flows in a real browser (Playwright)
+- Example: Login → Create proposal → Approve proposal → View dashboard
+
+**Why it's optional:**
+- We already have 93% coverage with unit + integration tests
+- E2E tests are slower and more complex to maintain
+- Can be added later if needed for critical user flows
+
+### 🚀 Quick Start with Docker
+
+```bash
+# Start all services (backend, frontend, Prometheus, Grafana)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+```
+
+**Access Points:**
+- Frontend: http://localhost:80
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
+- Metrics: http://localhost:8000/metrics
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3001 (admin/admin)
+
+### 📝 Docker Commands
+
+```bash
+# Build backend image
+cd backend
+docker build -t gov-spending-backend:latest .
+
+# Build frontend image
+cd frontend
+docker build -t gov-spending-frontend:latest --build-arg REACT_APP_API_BASE_URL=http://localhost:8000 .
+
+# Run backend container
+docker run -p 8000:8000 \
+  -e DATABASE_URL=sqlite:///./government_spending.db \
+  -e SECRET_KEY=your-secret-key \
+  gov-spending-backend:latest
+
+# Run frontend container
+docker run -p 80:80 gov-spending-frontend:latest
+```
+
+### 🚀 Azure Deployment
+
+The application is configured for deployment to **Azure App Service**. See [`.azure/README.md`](.azure/README.md) for detailed deployment instructions.
+
+**Quick Deploy (Local - Using .env file):**
+```bash
+# 1. Create .env file (optional but recommended)
+cp .azure/.env.example .azure/.env
+# Edit .azure/.env with your values
+
+# 2. Run automated setup script
+./.azure/deploy.sh
+
+# Or deploy manually
+cd backend
+az webapp up --name gov-spending-api --resource-group gov-spending-rg
+
+cd frontend
+npm run build
+az webapp up --name gov-spending-web --resource-group gov-spending-rg
+```
+
+**Local Deployment (Recommended for Development):**
+- ✅ Uses `.azure/.env` file (gitignored, uncommitted)
+- ❌ **NO secrets needed** for local deployment
+- ✅ Simple and straightforward
+- ✅ Full control over deployment
+
+**CI/CD Deployment Options:**
+
+1. **Azure Deployment Center (Simplest - Recommended)**
+   - ✅ Connect GitHub repo in Azure Portal
+   - ❌ No secrets needed
+   - ✅ Automatic deployment on push to `main`
+   - ✅ Easiest setup (5 minutes)
+   - See `.azure/README.md` for setup instructions
+
+2. **Azure DevOps Pipelines (Full CI/CD)**
+   - ✅ Native Azure integration
+   - ✅ Uses Azure Service Connections (secure)
+   - ✅ Full pipeline with tests, builds, deployment
+   - ✅ Best for teams and production
+   - Pipeline file: `azure-pipelines.yml`
+
+3. **GitHub Actions (Alternative)**
+   - ⚠️  GitHub secrets required
+   - ✅ Automatic deployment on push to `main`
+   - ✅ Good GitHub integration
+   - See `.azure/README.md` for setup instructions
+
+**Note:** For Azure deployments, we recommend **Azure Deployment Center** (simplest) or **Azure DevOps Pipelines** (full CI/CD). GitHub Actions is optional.
+
+**📖 Detailed CI/CD Setup Guide:** See [`.azure/CI_CD_DEPLOYMENT_GUIDE.md`](.azure/CI_CD_DEPLOYMENT_GUIDE.md) for step-by-step instructions on setting up CI/CD deployment to Azure.
 
 ## Testing
 

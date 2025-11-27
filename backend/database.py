@@ -1,13 +1,16 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+
 from settings import settings
 
 # Database setup
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
 
 # Ministry model
 class Ministry(Base):
@@ -18,10 +21,11 @@ class Ministry(Base):
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
-    
+
     # Relationships
     users = relationship("User", back_populates="ministry")
     proposals = relationship("Proposal", back_populates="ministry")
+
 
 # Category model
 class Category(Base):
@@ -32,7 +36,7 @@ class Category(Base):
     allocated_budget = Column(Float, nullable=False)
     remaining_budget = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     proposals = relationship("Proposal", back_populates="category")
 
@@ -46,10 +50,12 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False)  # "ministry" or "finance"
-    ministry_id = Column(Integer, ForeignKey("ministries.id"), nullable=True)  # Foreign key to Ministry
+    ministry_id = Column(
+        Integer, ForeignKey("ministries.id"), nullable=True
+    )  # Foreign key to Ministry
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     ministry = relationship("Ministry", back_populates="users")
 
@@ -59,7 +65,9 @@ class Proposal(Base):
     __tablename__ = "proposals"
 
     id = Column(Integer, primary_key=True, index=True)
-    ministry_id = Column(Integer, ForeignKey("ministries.id"), nullable=False)  # Foreign key to Ministry
+    ministry_id = Column(
+        Integer, ForeignKey("ministries.id"), nullable=False
+    )  # Foreign key to Ministry
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
@@ -69,26 +77,29 @@ class Proposal(Base):
     decision_notes = Column(String, nullable=True)
     decided_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     ministry = relationship("Ministry", back_populates="proposals")
     category = relationship("Category", back_populates="proposals")
 
+
 # Create tables
+
 
 def create_tables():
     """
     Create all database tables using Alembic migrations and seed default data.
-    
+
     This function:
     1. Runs Alembic migrations to ensure schema is up-to-date
     2. Creates default ministries and users if they don't exist
     """
-    from alembic.config import Config
     from alembic import command
-    from database import User as DBUser, Ministry as DBMinistry
+    from alembic.config import Config
     from auth import get_password_hash
-    
+    from database import Ministry as DBMinistry
+    from database import User as DBUser
+
     # Run Alembic migrations to ensure schema is up-to-date
     try:
         alembic_cfg = Config("alembic.ini")
@@ -100,21 +111,23 @@ def create_tables():
         print(f"Warning: Alembic migration failed: {e}")
         print("Falling back to direct table creation...")
         Base.metadata.create_all(bind=engine)
-    
+
     # Create default ministries and users if they don't exist
     db = SessionLocal()
-    
+
     try:
         # Create default ministry
-        education_ministry = db.query(DBMinistry).filter(DBMinistry.name == "Ministry of Education").first()
+        education_ministry = (
+            db.query(DBMinistry).filter(DBMinistry.name == "Ministry of Education").first()
+        )
         if not education_ministry:
             education_ministry = DBMinistry(
                 name="Ministry of Education",
-                description="Government ministry responsible for education policy and funding"
+                description="Government ministry responsible for education policy and funding",
             )
             db.add(education_ministry)
             db.flush()  # Get the ID
-        
+
         # Create default finance user
         finance_user = db.query(DBUser).filter(DBUser.username == "finance").first()
         if not finance_user:
@@ -123,10 +136,10 @@ def create_tables():
                 email="finance@gov.com",
                 hashed_password=get_password_hash("fin"),
                 role="finance",
-                ministry_id=None  # Finance users don't belong to a ministry
+                ministry_id=None,  # Finance users don't belong to a ministry
             )
             db.add(finance_user)
-        
+
         # Create default ministry user
         ministry_user = db.query(DBUser).filter(DBUser.username == "ministry").first()
         if not ministry_user:
@@ -135,10 +148,10 @@ def create_tables():
                 email="ministry@gov.com",
                 hashed_password=get_password_hash("min"),
                 role="ministry",
-                ministry_id=education_ministry.id  # Link to Ministry of Education
+                ministry_id=education_ministry.id,  # Link to Ministry of Education
             )
             db.add(ministry_user)
-        
+
         db.commit()
         print("Default ministries and users created successfully")
     except Exception as e:
@@ -147,7 +160,9 @@ def create_tables():
     finally:
         db.close()
 
+
 # Database dependency
+
 
 def get_db():
     db = SessionLocal()
