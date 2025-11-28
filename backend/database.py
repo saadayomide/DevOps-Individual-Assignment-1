@@ -129,15 +129,20 @@ def create_tables():
 
     # Run Alembic migrations to ensure schema is up-to-date
     try:
+        print("[startup] Loading Alembic configuration...")
         alembic_cfg = Config("alembic.ini")
+        print("[startup] Running Alembic migrations to head...")
         command.upgrade(alembic_cfg, "head")
-        print("Database migrations applied successfully")
+        print("[startup] Database migrations applied successfully")
     except Exception as e:
         # If migrations fail, fall back to creating tables directly
         # This is useful for initial setup or if Alembic isn't configured
-        print(f"Warning: Alembic migration failed: {e}")
-        print("Falling back to direct table creation...")
+        print(f"[startup] Warning: Alembic migration failed: {e}")
+        import traceback
+        print(f"[startup] Traceback: {traceback.format_exc()}")
+        print("[startup] Falling back to direct table creation...")
         Base.metadata.create_all(bind=engine)
+        print("[startup] Direct table creation completed")
 
     # Create default ministries and users if they don't exist
     db = SessionLocal()
