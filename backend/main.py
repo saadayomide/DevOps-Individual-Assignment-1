@@ -1,6 +1,6 @@
-from datetime import timedelta
 import logging
 import os
+from datetime import timedelta
 from typing import Any, cast
 
 import uvicorn
@@ -51,8 +51,6 @@ from models import (
 from models import User as UserModel
 from repositories.categories import CategoryRepository
 from repositories.ministries import MinistryRepository
-
-# Import services and exceptions
 from services.approvals import ApprovalService
 from services.parser import ContractParserService
 from services.proposals import ProposalService
