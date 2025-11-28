@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from datetime import timedelta
@@ -56,11 +57,30 @@ from services.parser import ContractParserService
 from services.proposals import ProposalService
 from settings import settings
 
+# Helper function to parse CORS_ORIGINS from string (JSON or comma-separated)
+def parse_cors_origins(cors_str: str) -> list[str]:
+    """Parse CORS_ORIGINS from JSON array or comma-separated string."""
+    if not cors_str:
+        return ["http://localhost:3000"]
+    # Try JSON first
+    try:
+        parsed = json.loads(cors_str)
+        if isinstance(parsed, list):
+            return parsed
+    except (json.JSONDecodeError, ValueError):
+        pass
+    # Fall back to comma-separated string
+    return [origin.strip() for origin in cors_str.split(",") if origin.strip()]
+
+
+# Read CORS_ORIGINS directly from environment to avoid pydantic-settings JSON parsing issues
+CORS_ORIGINS_STR = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+
 # Create FastAPI app
 app = FastAPI(title=settings.API_TITLE, version=settings.API_VERSION)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=parse_cors_origins(CORS_ORIGINS_STR),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
