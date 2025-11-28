@@ -403,9 +403,13 @@ def list_proposals(
 
 
 @app.post("/proposals", response_model=Proposal)
-def create_proposal(payload: ProposalCreate, db: Session = Depends(get_db)):
-    """Create a new proposal."""
-    return ProposalService.create_proposal(db, payload)
+def create_proposal(
+    payload: ProposalCreate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_ministry_role),
+):
+    """Create a new proposal. Ministry users can only create proposals for their own ministry."""
+    return ProposalService.create_proposal(db, payload, current_user)
 
 
 @app.get("/proposals/{proposal_id}", response_model=Proposal)

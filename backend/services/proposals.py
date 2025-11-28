@@ -41,7 +41,7 @@ class ProposalService:
         return proposal
 
     @staticmethod
-    def create_proposal(db: Session, payload: ProposalCreate) -> DBProposal:
+    def create_proposal(db: Session, payload: ProposalCreate, current_user) -> DBProposal:
         """
         Create a new proposal.
 
@@ -49,7 +49,9 @@ class ProposalService:
         - Category exists
         - Ministry exists (or creates new one if ministry_name provided)
         - Requested amount is valid (> 0)
+        - Ministry users can only create proposals for their own ministry
         """
+
         # Validate category exists
         category = CategoryRepository.get_by_id(db, payload.category_id)
         if not category:
@@ -62,15 +64,41 @@ class ProposalService:
             ministry = MinistryRepository.get_by_id(db, payload.ministry_id)
             if not ministry:
                 raise MinistryNotFoundError("Ministry does not exist")
+            
+            # Validate that ministry users can only create proposals for their own ministry
+            if current_user.role == "ministry" and current_user.ministry_id != payload.ministry_id:
+                raise ValidationError(
+                    "You can only create proposals for your own ministry"
+                )
         elif payload.ministry_name:
-            # Find or create ministry by name
-            ministry_name = payload.ministry_name.strip()
-            if not ministry_name:
-                raise ValidationError("Ministry name cannot be empty")
-
-            ministry = MinistryRepository.find_or_create(db, ministry_name)
+            # For ministry users, they must use their own ministry
+            if current_user.role == "ministry":
+                if not current_user.ministry_id:
+                    raise ValidationError(
+                        "You must be assigned to a ministry to create proposals"
+                    )
+                # Use the user's ministry instead of the provided name
+                ministry = MinistryRepository.get_by_id(db, current_user.ministry_id)
+                if not ministry:
+                    raise MinistryNotFoundError("Your assigned ministry does not exist")
+            else:
+                # Finance users can create ministries by name (for contract uploads, etc.)
+                ministry_name = payload.ministry_name.strip()
+                if not ministry_name:
+                    raise ValidationError("Ministry name cannot be empty")
+                ministry = MinistryRepository.find_or_create(db, ministry_name)
         else:
-            raise ValidationError("Either ministry_id or ministry_name is required")
+            # If no ministry specified, use the current user's ministry (for ministry users)
+            if current_user.role == "ministry":
+                if not current_user.ministry_id:
+                    raise ValidationError(
+                        "You must be assigned to a ministry to create proposals"
+                    )
+                ministry = MinistryRepository.get_by_id(db, current_user.ministry_id)
+                if not ministry:
+                    raise MinistryNotFoundError("Your assigned ministry does not exist")
+            else:
+                raise ValidationError("Either ministry_id or ministry_name is required")
 
         # Validate amount
         if payload.requested_amount is None or payload.requested_amount <= 0:
