@@ -57,6 +57,7 @@ from services.parser import ContractParserService
 from services.proposals import ProposalService
 from settings import settings
 
+
 # Helper function to parse CORS_ORIGINS from string (JSON or comma-separated)
 def parse_cors_origins(cors_str: str) -> list[str]:
     """Parse CORS_ORIGINS from JSON array or comma-separated string."""

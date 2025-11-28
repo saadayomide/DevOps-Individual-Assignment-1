@@ -3,8 +3,6 @@ Application settings using pydantic-settings for environment variable management
 This removes hardcoded values and enables proper configuration management.
 """
 
-import os
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
