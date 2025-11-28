@@ -103,7 +103,7 @@ jobs:
         run: |
           docker build -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:latest \
                        -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-                       --build-arg REACT_APP_API_BASE_URL=https://${{ secrets.AZURE_BACKEND_APP_NAME }}.azurewebsites.net \
+                       --build-arg REACT_APP_API_BASE_URL=https://gov-spending-api-cec3ana0d4dhdpa6.canadacentral-01.azurewebsites.net \
                        frontend
 
       - name: Push backend image
