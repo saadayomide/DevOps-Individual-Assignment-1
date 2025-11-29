@@ -1,8 +1,8 @@
-# 🏛️ Government Spending Tracker
+# Government Spending Tracker
 
 A comprehensive web application that simulates the government budget proposal and approval process. Government ministries submit budget requests, which are reviewed and approved by the Ministry of Finance. The system maintains real-time budget tracking, provides detailed analytics, and ensures transparency through comprehensive audit trails.
 
-## 🎯 **What It Does**
+## What It Does
 
 The Government Spending Tracker streamlines the government budget management process by:
 
@@ -13,7 +13,7 @@ The Government Spending Tracker streamlines the government budget management pro
 - **Comprehensive Reporting**: Dashboards, analytics, and CSV exports for transparency
 - **File Processing**: Bulk proposal creation through CSV/JSON file uploads
 
-## 🏗️ **Architecture & Technology Stack**
+## Architecture & Technology Stack
 
 ### **Frontend (React)**
 - **Framework**: React with Create React App
@@ -212,7 +212,7 @@ The system supports two user roles with comprehensive access control:
 - **Database Migrations**: Alembic for version-controlled schema changes
 - **Environment Configuration**: No hardcoded values - all configurable via environment variables
 
-## 🚀 **Core Features**
+## Core Features
 
 ### **1. Ministry Management**
 - **Auto-Creation**: Type any ministry name → automatically created if new
@@ -268,7 +268,7 @@ The system supports two user roles with comprehensive access control:
 - **Search Functionality**: Find specific proposals quickly
 - **Audit Compliance**: Complete documentation for transparency
 
-## 📊 **Database Schema**
+## Database Schema
 
 ### **Tables & Relationships:**
 
@@ -351,7 +351,7 @@ proposals
   - `GET /reports/approvals.csv`
 - Frontend: filters, sortable columns, pagination, export buttons
 
-## 🔄 **Complete Workflow**
+## Complete Workflow
 
 ### **Typical User Journey:**
 
@@ -387,50 +387,50 @@ proposals
 4) Review Dashboard for allocations and approvals
 5) Review History and export CSV reports
 
-## 🔄 Phase 1 Improvements (Assignment 2)
+## Phase 1 Improvements (Assignment 2)
 
 Phase 1 focused on code quality, refactoring, and infrastructure improvements:
 
-### ✅ Completed Improvements
+###  Completed Improvements
 
 1. **Environment Configuration**
-   - ✅ Removed all hardcoded values (SECRET_KEY, DATABASE_URL, CORS_ORIGINS)
-   - ✅ Added `settings.py` with pydantic-settings for environment variable management
-   - ✅ Frontend reads API base URL from `REACT_APP_API_BASE_URL`
-   - ✅ All configuration now comes from environment variables or `.env` files
+   - Removed all hardcoded values (SECRET_KEY, DATABASE_URL, CORS_ORIGINS)
+   - Added `settings.py` with pydantic-settings for environment variable management
+   - Frontend reads API base URL from `REACT_APP_API_BASE_URL`
+   - All configuration now comes from environment variables or `.env` files
 
 2. **Service Layer Refactoring**
-   - ✅ Extracted business logic from routers into service layer
-   - ✅ Created `services/approvals.py`, `services/proposals.py`, `services/parser.py`
-   - ✅ Routers are now thin HTTP layers (follows SOLID principles)
-   - ✅ Removed code duplication and long methods
+   - Extracted business logic from routers into service layer
+   - Created `services/approvals.py`, `services/proposals.py`, `services/parser.py`
+   - Routers are now thin HTTP layers (follows SOLID principles)
+   - Removed code duplication and long methods
 
 3. **Repository Layer**
-   - ✅ Created data access layer: `repositories/proposals.py`, `repositories/categories.py`, `repositories/ministries.py`
-   - ✅ Encapsulated database queries for better maintainability
-   - ✅ Consistent query patterns across the codebase
+   - Created data access layer: `repositories/proposals.py`, `repositories/categories.py`, `repositories/ministries.py`
+   - Encapsulated database queries for better maintainability
+   - Consistent query patterns across the codebase
 
 4. **Security Improvements**
-   - ✅ Replaced SHA256 with bcrypt for password hashing (production-ready)
-   - ✅ Backward compatible (legacy SHA256 hashes still work)
-   - ✅ Secure password storage with proper salting
+   - Replaced SHA256 with bcrypt for password hashing (production-ready)
+   - Backward compatible (legacy SHA256 hashes still work)
+   - Secure password storage with proper salting
 
 5. **Database Migrations**
-   - ✅ Set up Alembic for version-controlled database migrations
-   - ✅ Created baseline migration capturing current schema
-   - ✅ Replaced ad-hoc SQLite migration code
-   - ✅ Database-agnostic (works with PostgreSQL, MySQL, etc.)
+   - Set up Alembic for version-controlled database migrations
+   - Created baseline migration capturing current schema
+   - Replaced ad-hoc SQLite migration code
+   - Database-agnostic (works with PostgreSQL, MySQL, etc.)
 
 6. **Exception Handling**
-   - ✅ Created domain exceptions (`exceptions.py`)
-   - ✅ Centralized exception handlers in `main.py`
-   - ✅ Proper HTTP status code mapping (404 for not found, 400 for validation, etc.)
+   - Created domain exceptions (`exceptions.py`)
+   - Centralized exception handlers in `main.py`
+   - Proper HTTP status code mapping (404 for not found, 400 for validation, etc.)
 
 7. **Business Logic Enforcement**
-   - ✅ Finance-only category creation/update/deletion
-   - ✅ Role-based access control properly enforced
+   - Finance-only category creation/update/deletion
+   - Role-based access control properly enforced
 
-### 📊 Code Quality Metrics
+### Code Quality Metrics
 
 - **Code Smells Removed**: Hardcoded values, duplication, long methods
 - **SOLID Principles**: Applied Single Responsibility, Dependency Inversion
@@ -438,7 +438,7 @@ Phase 1 focused on code quality, refactoring, and infrastructure improvements:
 - **Security**: Production-ready password hashing
 - **Maintainability**: Improved with service/repository pattern
 
-### 📝 Migration Commands
+### Migration Commands
 
 ```bash
 # Check current migration status
@@ -459,49 +459,45 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-## 🔄 Phase 2 Improvements (Assignment 2)
+## Phase 2 Improvements (Assignment 2)
 
 Phase 2 focused on testing, code quality, and validation improvements:
 
-### ✅ Completed Improvements
+###  Completed Improvements
 
 1. **Linters and Static Analysis**
-   - ✅ Installed and configured `ruff` for fast Python linting
-   - ✅ Installed and configured `mypy` for type checking
-   - ✅ Installed and configured `bandit` for security linting
-   - ✅ Created `pyproject.toml` with comprehensive linting rules
-   - ✅ Auto-fixed formatting issues across codebase
-   - ✅ Fixed code quality issues (exception handling, comparisons)
+   - Installed and configured `ruff` for fast Python linting
+   - Installed and configured `mypy` for type checking
+   - Installed and configured `bandit` for security linting
+   - Created `pyproject.toml` with comprehensive linting rules
+   - Auto-fixed formatting issues across codebase
+   - Fixed code quality issues (exception handling, comparisons)
 
 2. **Test Coverage**
-   - ✅ **Current Coverage: 93%** (exceeds 70% requirement)
-   - ✅ All existing tests passing
-   - ✅ Updated tests to work with new Pydantic validators
-   - ✅ Coverage reports generated (HTML + terminal)
+   - **Current Coverage: 93%** (exceeds 70% requirement)
+   - All existing tests passing
+   - Updated tests to work with new Pydantic validators
+   - Coverage reports generated (HTML + terminal)
 
 3. **Stronger Pydantic Validators**
-   - ✅ Added `Field` constraints to all models:
+   - Added `Field` constraints to all models:
      - `gt=0` for positive numbers (amounts, IDs)
      - `min_length`/`max_length` for strings (names, titles, descriptions)
      - Custom validators for email and role validation
-   - ✅ Better error messages with descriptions
-   - ✅ Validation happens at Pydantic level (422 errors) before reaching services
+   - Better error messages with descriptions
+   - Validation happens at Pydantic level (422 errors) before reaching services
 
 4. **Code Quality Improvements**
-   - ✅ Fixed exception handling (proper `raise ... from e`)
-   - ✅ Fixed boolean comparisons (`is_active` instead of `is_active == True`)
-   - ✅ Improved type annotations
-   - ✅ Removed duplicate code
+   - Fixed exception handling (proper `raise ... from e`)
+   - Fixed boolean comparisons (`is_active` instead of `is_active == True`)
+   - Improved type annotations
+   - Removed duplicate code
 
-### 📊 Quality Metrics
+### Quality Metrics
 
-- **Test Coverage**: 93% ✅ (Requirement: 70%)
-- **Linting**: All major issues fixed ✅
-- **Type Checking**: Configured with mypy ✅
-- **Security Scanning**: Bandit configured ✅
-- **Code Quality**: Improved with validators and linters ✅
-
-### 🛠️ Development Commands
+- **Test Coverage**: 93%  (Requirement: 70%)
+- **Linting**: All major issues fixed - **Type Checking**: Configured with mypy - **Security Scanning**: Bandit configured - **Code Quality**: Improved with validators and linters 
+### Development Commands
 
 ```bash
 # Run all linters
@@ -517,7 +513,7 @@ make test
 make coverage
 ```
 
-### 📝 Linting Commands
+### Linting Commands
 
 ```bash
 # Run ruff (linter)
@@ -537,62 +533,62 @@ mypy . --ignore-missing-imports
 bandit -r . -ll
 ```
 
-## 🔄 Phase 3: CI/CD & Deployment (Assignment 2)
+## Phase 3: CI/CD & Deployment (Assignment 2)
 
 Phase 3 focuses on automation, containerization, and deployment:
 
-### ✅ Completed Improvements
+###  Completed Improvements
 
 1. **CI/CD Pipeline (GitHub Actions)**
-   - ✅ Automated testing on pull requests and pushes
-   - ✅ Coverage reporting and enforcement (≥70%)
-   - ✅ Linting checks (ruff, mypy, bandit)
-   - ✅ Build and test both backend and frontend
-   - ✅ Docker image building
-   - ✅ Deployment automation ready (main branch only)
+   - Automated testing on pull requests and pushes
+   - Coverage reporting and enforcement (≥70%)
+   - Linting checks (ruff, mypy, bandit)
+   - Build and test both backend and frontend
+   - Docker image building
+   - Deployment automation ready (main branch only)
 
 2. **Docker Containerization**
-   - ✅ Multi-stage Dockerfile for backend (optimized image size)
-   - ✅ Dockerfile for frontend (nginx-based)
-   - ✅ Docker Compose for local development with Prometheus & Grafana
-   - ✅ Environment variable configuration
-   - ✅ Health checks in containers
+   - Multi-stage Dockerfile for backend (optimized image size)
+   - Dockerfile for frontend (nginx-based)
+   - Docker Compose for local development with Prometheus & Grafana
+   - Environment variable configuration
+   - Health checks in containers
 
 3. **Monitoring & Health Checks**
-   - ✅ `/health` endpoint with database connectivity check
-   - ✅ Prometheus metrics endpoint (`/metrics`)
-   - ✅ Request count, latency, and error metrics
-   - ✅ Grafana dashboard configuration
-   - ✅ Prometheus configuration for metrics collection
+   - `/health` endpoint with database connectivity check
+   - Prometheus metrics endpoint (`/metrics`)
+   - Request count, latency, and error metrics
+   - Grafana dashboard configuration
+   - Prometheus configuration for metrics collection
 
 4. **Azure Deployment**
-   - ✅ Azure App Service configuration for backend and frontend
-   - ✅ GitHub Actions CI/CD pipeline updated for Azure deployment
-   - ✅ Deployment scripts and documentation
-   - ✅ Environment variable configuration
-   - ⚪ **E2E tests with Playwright** (optional, can be added here for full browser testing)
-   - ⚪ Performance testing
-   - ⚪ Load testing
+   - Azure App Service configuration for backend and frontend
+   - GitHub Actions CI/CD pipeline updated for Azure deployment
+   - Deployment scripts and documentation
+   - Environment variable configuration
+   - **E2E tests with Playwright** (optional, can be added here for full browser testing)
+   - Performance testing
+   - Load testing
 
-### 🎯 Phase 3 Goals
+### Phase 3 Goals
 
 - **Automation**: CI/CD pipeline runs tests, builds, and deploys automatically
 - **Containerization**: Docker images for reproducible deployments
 - **Monitoring**: Health checks and metrics for production visibility
 - **Deployment**: Automated deployment to cloud platform
 
-### 📊 Deliverables
+### Deliverables
 
-- ✅ `.github/workflows/ci-cd.yml` - GitHub Actions workflow that builds/tests containers and deploys to Azure App Service
-- ✅ (Removed) Azure DevOps pipeline – superseded by GitHub Actions
-- ✅ `backend/Dockerfile` - Backend containerization (multi-stage)
-- ✅ `frontend/Dockerfile` - Frontend containerization (nginx-based)
-- ✅ `docker-compose.yml` - Local development setup with monitoring
-- ✅ `ops/prometheus/prometheus.yml` - Prometheus configuration
-- ✅ `ops/grafana/` - Grafana dashboard and datasource configuration
-- ✅ `.azure/` - Azure deployment reference docs (service principal + secrets guide)
-- ✅ `/health` endpoint - Health check with database connectivity
-- ✅ `/metrics` endpoint - Prometheus metrics (auto-exposed)
+-  `.github/workflows/ci-cd.yml` - GitHub Actions workflow that builds/tests containers and deploys to Azure App Service
+-  (Removed) Azure DevOps pipeline – superseded by GitHub Actions
+-  `backend/Dockerfile` - Backend containerization (multi-stage)
+-  `frontend/Dockerfile` - Frontend containerization (nginx-based)
+-  `docker-compose.yml` - Local development setup with monitoring
+-  `ops/prometheus/prometheus.yml` - Prometheus configuration
+-  `ops/grafana/` - Grafana dashboard and datasource configuration
+-  `.azure/` - Azure deployment reference docs (service principal + secrets guide)
+-  `/health` endpoint - Health check with database connectivity
+-  `/metrics` endpoint - Prometheus metrics (auto-exposed)
 
 ### 🔧 Phase 3 Components Explained
 
@@ -646,7 +642,7 @@ Phase 3 focuses on automation, containerization, and deployment:
 - E2E tests are slower and more complex to maintain
 - Can be added later if needed for critical user flows
 
-### 🚀 Quick Start with Docker
+### Quick Start with Docker
 
 ```bash
 # Start all services (backend, frontend, Prometheus, Grafana)
@@ -671,7 +667,7 @@ docker-compose up -d --build
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3001 (admin/admin)
 
-### 📝 Docker Commands
+### Docker Commands
 
 ```bash
 # Build backend image
@@ -692,7 +688,7 @@ docker run -p 8000:8000 \
 docker run -p 80:80 gov-spending-frontend:latest
 ```
 
-### 🗄️ Migrating from SQLite to PostgreSQL (Recommended for Azure)
+### Migrating from SQLite to PostgreSQL (Recommended for Azure)
 
 1. **Provision a managed Postgres instance** (e.g., Azure Database for PostgreSQL Flexible Server).
 2. **Collect the connection string** and convert it to SQLAlchemy format:
@@ -705,24 +701,103 @@ docker run -p 80:80 gov-spending-frontend:latest
 
 SQLite remains available for quick local work, but Azure deployments should use PostgreSQL to avoid data loss when containers restart.
 
-### 🚀 Azure Deployment
+### Azure Deployment
 
-The application is configured for deployment to **Azure App Service**. 
+The application is configured for automated deployment to **Azure App Service** using **GitHub Actions CI/CD**.
 
-**📦 Container Deployment (Recommended for Assignment):**
-- `backend/Dockerfile` + `frontend/Dockerfile` build deployable containers
-- `.github/workflows/ci-cd.yml` runs tests, builds/pushes both images to your ACR, and updates the Azure App Services with the new tags
-- Add the required GitHub Secrets (`AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, app names, ACR login server/user/password, `BACKEND_IMAGE_NAME`, `FRONTEND_IMAGE_NAME`) so the workflow can authenticate
+#### Prerequisites
 
-**Optional Alternatives:**
-1. **Azure Deployment Center (Simplest)**
-   - Connect the repo directly in the portal; Azure handles the build
-   - Useful for demos if you don’t want CI/CD pipelines
+Before deploying, ensure you have:
+- Azure subscription with a Resource Group
+- Azure Container Registry (ACR) created
+- Two Linux App Services (one for backend, one for frontend)
+- Azure CLI installed locally (`az login`)
+- GitHub repository with Actions enabled
 
-2. **Manual Azure CLI**
-   - You can still use `az webapp config container set` / `az webapp restart` locally if you need to hotfix outside CI/CD
+#### Step 1: Create Service Principal for GitHub Actions
 
-> ⚠️ **Important**: Regardless of deployment method, keep `DATABASE_URL` pointing to a managed PostgreSQL instance. Containers will fail health checks without persistent storage.
+Create an Azure service principal that GitHub Actions will use to authenticate:
+
+```bash
+az ad sp create-for-rbac \
+  --name "gov-spending-github-actions" \
+  --role contributor \
+  --scopes /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP> \
+  --sdk-auth
+```
+
+Copy the JSON output - you'll need it for the next step.
+
+#### Step 2: Configure GitHub Secrets
+
+Go to your GitHub repository → **Settings → Secrets and variables → Actions**, and add the following secrets:
+
+| Secret Name | Description | How to Get It |
+|------------|-------------|---------------|
+| `AZURE_CREDENTIALS` | Service principal JSON from Step 1 | Paste the JSON output from `az ad sp create-for-rbac` |
+| `AZURE_RESOURCE_GROUP` | Your Azure resource group name | e.g., `BCSAI2025-DEVOPS-STUDENTS-A` |
+| `AZURE_BACKEND_APP_NAME` | Backend App Service name | e.g., `gov-spending-api` |
+| `AZURE_FRONTEND_APP_NAME` | Frontend App Service name | e.g., `gov-spending-web` |
+| `AZURE_ACR_LOGIN_SERVER` | ACR login server URL | Run: `az acr show --name <ACR_NAME> --query loginServer -o tsv` |
+| `AZURE_ACR_USERNAME` | ACR admin username | Run: `az acr credential show --name <ACR_NAME> --query username -o tsv` |
+| `AZURE_ACR_PASSWORD` | ACR admin password | Run: `az acr credential show --name <ACR_NAME> --query passwords[0].value -o tsv` |
+| `BACKEND_IMAGE_NAME` | Backend container repo path | e.g., `gov-spending/backend` |
+| `FRONTEND_IMAGE_NAME` | Frontend container repo path | e.g., `gov-spending/frontend` |
+
+#### Step 3: Configure App Service Settings
+
+Configure application settings for both App Services in Azure Portal:
+
+**Backend App Service** (Configuration → Application settings):
+- `DATABASE_URL`: PostgreSQL connection string (e.g., `postgresql+psycopg://user:pass@host:5432/db?sslmode=require`)
+- `SECRET_KEY`: A secure random string for JWT token signing
+- `CORS_ORIGINS`: Frontend URL (e.g., `https://gov-spending-web.azurewebsites.net`)
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: Token expiration time (e.g., `30`)
+- `WEBSITES_PORT`: `8000`
+- `WEBSITE_HEALTHCHECK_PATH`: `/health`
+- `WEBSITE_HEALTHCHECK_MAXPINGFAILURES`: `2`
+
+**Frontend App Service** (Configuration → Application settings):
+- `REACT_APP_API_BASE_URL`: Backend API URL (e.g., `https://gov-spending-api.azurewebsites.net`)
+- `WEBSITES_PORT`: `80`
+- `WEBSITE_HEALTHCHECK_PATH`: `/` (optional)
+- `WEBSITE_HEALTHCHECK_MAXPINGFAILURES`: `2`
+
+#### Step 4: Deploy
+
+Once secrets are configured, deployment is automatic:
+
+1. **Push to `main` branch** - The GitHub Actions workflow (`.github/workflows/ci-cd.yml`) will:
+   - Run all tests (backend and frontend)
+   - Build Docker images for both services
+   - Push images to Azure Container Registry
+   - Deploy to Azure App Services
+   - Restart the services
+
+2. **Monitor deployment**:
+   - View workflow runs: GitHub → **Actions** tab
+   - Check App Service logs: Azure Portal → App Service → **Log stream**
+   - Verify health: Visit `https://<backend-app>.azurewebsites.net/health`
+
+#### Step 5: Verify Deployment
+
+After deployment completes, verify:
+
+- **Backend Health**: `https://<backend-app>.azurewebsites.net/health`
+- **Backend API Docs**: `https://<backend-app>.azurewebsites.net/docs`
+- **Backend Metrics**: `https://<backend-app>.azurewebsites.net/metrics`
+- **Frontend**: `https://<frontend-app>.azurewebsites.net`
+
+#### Troubleshooting
+
+- **ImagePullFailure**: Regenerate ACR password and update `AZURE_ACR_PASSWORD` secret
+- **Application Error**: Check container logs via Azure Portal → Log Stream or `az webapp log tail`
+- **Workflow fails at login**: Verify `AZURE_CREDENTIALS` JSON is valid and service principal has Contributor role
+- **Database connection issues**: Ensure `DATABASE_URL` is correctly formatted and PostgreSQL firewall allows Azure services
+
+> **Important**: Always use PostgreSQL for production deployments. SQLite is only for local development. Containers will lose data if using SQLite.
+
+For more detailed deployment information, see `.azure/README.md`.
 
 ## Testing
 
@@ -797,7 +872,7 @@ The test suite should include:
 #### Coverage Requirements
 
 - **Minimum Coverage**: 70% code coverage required (Phase 2 target)
-- **Current Coverage**: 93% ✅ (exceeds requirement)
+- **Current Coverage**: 93%  (exceeds requirement)
 - **Test Database**: Use separate SQLite test database
 - **Cleanup**: Tests should clean up after themselves
 - **Isolation**: Each test should be independent
@@ -805,24 +880,19 @@ The test suite should include:
 #### Current Test Results
 
 The test suite includes **80 comprehensive tests** with the following coverage:
-- **Authentication**: 100% coverage ✅
-- **Database Models**: 100% coverage ✅
-- **API Endpoints**: 99% coverage ✅
-- **Services**: 80-84% coverage ✅
-- **Repositories**: 94-98% coverage ✅
-- **Overall**: 93% coverage ✅ (exceeds 70% requirement)
+- **Authentication**: 100% coverage - **Database Models**: 100% coverage - **API Endpoints**: 99% coverage - **Services**: 80-84% coverage - **Repositories**: 94-98% coverage - **Overall**: 93% coverage  (exceeds 70% requirement)
 
-## 🎯 **Project Highlights**
+## Project Highlights
 
-- ✅ **Production-Ready**: Complete, fully functional application
-- ✅ **User-Centered Design**: Intuitive interface with role-based access
-- ✅ **Scalable Architecture**: Proper database design with relationships
-- ✅ **Secure**: Comprehensive authentication and authorization
-- ✅ **Flexible**: Auto-creation and bulk processing capabilities
-- ✅ **Professional**: Government-grade interface and functionality
-- ✅ **Well-Documented**: Comprehensive documentation and code comments
-- ✅ **Testable**: Built with testing requirements in mind
-- ✅ **Maintainable**: Clean code structure and separation of concerns
+-  **Production-Ready**: Complete, fully functional application
+-  **User-Centered Design**: Intuitive interface with role-based access
+-  **Scalable Architecture**: Proper database design with relationships
+-  **Secure**: Comprehensive authentication and authorization
+-  **Flexible**: Auto-creation and bulk processing capabilities
+-  **Professional**: Government-grade interface and functionality
+-  **Well-Documented**: Comprehensive documentation and code comments
+-  **Testable**: Built with testing requirements in mind
+-  **Maintainable**: Clean code structure and separation of concerns
 
 
 ## 🔧 **Development Notes**
@@ -834,7 +904,7 @@ The test suite includes **80 comprehensive tests** with the following coverage:
 - **Security**: JWT authentication with proper password hashing
 - **Validation**: Both client-side and server-side input validation
 
-## 🚀 **Deployment Considerations**
+## Deployment Considerations
 
 - **Database**: Consider PostgreSQL for multi-user production deployments
 - **Authentication**: Implement proper session management for production
