@@ -6,6 +6,7 @@ import ContractUpload from './ContractUpload';
 import Dashboard from './Dashboard';
 import HistoryView from './HistoryView';
 import Login from './Login';
+import Register from './Register';
 import Sidebar from './Sidebar';
 import RoleGuard from './RoleGuard';
 import { UserProvider, useUser } from './UserContext';
@@ -39,6 +40,7 @@ const Header = () => {
 function AppContent() {
   const [proposalRefreshKey, setProposalRefreshKey] = useState(0);
   const { user, loading } = useUser();
+  const [showRegister, setShowRegister] = useState(false);
   
   // Set default tab based on user role
   const getDefaultTab = (userRole) => {
@@ -137,7 +139,10 @@ function AppContent() {
   }
 
   if (!user) {
-    return <Login />;
+    if (showRegister) {
+      return <Register onSwitchToLogin={() => setShowRegister(false)} />;
+    }
+    return <Login onSwitchToRegister={() => setShowRegister(true)} />;
   }
 
   return (

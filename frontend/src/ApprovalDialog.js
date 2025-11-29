@@ -50,7 +50,7 @@ const ApprovalDialog = ({ proposal, categories, onApprove, onReject, onClose }) 
       <div className="modal-overlay">
         <div className="modal">
           <h3>Approve Proposal</h3>
-          <p><strong>{proposal.title}</strong> - {proposal.ministry}</p>
+          <p><strong>{proposal.title}</strong> - {proposal.ministry?.name || 'Unknown'}</p>
           <p>Requested: ${proposal.requested_amount.toLocaleString()}</p>
           <p>Category remaining: ${category?.remaining_budget?.toLocaleString() || 'N/A'}</p>
           
@@ -110,7 +110,7 @@ const ApprovalDialog = ({ proposal, categories, onApprove, onReject, onClose }) 
       <div className="modal-overlay">
         <div className="modal">
           <h3>Reject Proposal</h3>
-          <p><strong>{proposal.title}</strong> - {proposal.ministry}</p>
+          <p><strong>{proposal.title}</strong> - {proposal.ministry?.name || 'Unknown'}</p>
           <p>Requested: ${proposal.requested_amount.toLocaleString()}</p>
           
           {error && (

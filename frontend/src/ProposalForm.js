@@ -6,14 +6,12 @@ const ProposalForm = ({ onCreated }) => {
   const { user } = useUser();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
-    ministry_name: '',
     category_id: '',
     title: '',
     description: '',
     requested_amount: ''
   });
   const [error, setError] = useState(null);
-  const [defaultMinistrySet, setDefaultMinistrySet] = useState(false);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -24,8 +22,12 @@ const ProposalForm = ({ onCreated }) => {
     e.preventDefault();
     setError(null);
     // Client-side validation
-    if (!form.ministry_name || !form.title || !form.category_id || !form.requested_amount) {
+    if (!form.title || !form.category_id || !form.requested_amount) {
       setError('Please fill all required fields.');
+      return;
+    }
+    if (!user?.ministry?.id) {
+      setError('You must be assigned to a ministry to submit proposals.');
       return;
     }
     const amount = parseFloat(form.requested_amount);
@@ -35,14 +37,13 @@ const ProposalForm = ({ onCreated }) => {
     }
     try {
       await proposalAPI.create({
-        ministry_name: form.ministry_name,
+        ministry_id: user.ministry.id, // Use the logged-in user's ministry
         category_id: parseInt(form.category_id, 10),
         title: form.title,
         description: form.description || null,
         requested_amount: amount,
       });
-      setForm({ ministry_name: '', category_id: '', title: '', description: '', requested_amount: '' });
-      setDefaultMinistrySet(false); // Reset flag so default ministry can be set again
+      setForm({ category_id: '', title: '', description: '', requested_amount: '' });
       onCreated && onCreated();
     } catch (e) {
       // Handle different error formats
@@ -89,13 +90,6 @@ const ProposalForm = ({ onCreated }) => {
     return () => window.removeEventListener('categories-updated', handler);
   }, []);
 
-  // Set default ministry name when user loads (only once)
-  useEffect(() => {
-    if (user?.ministry?.name && !defaultMinistrySet) {
-      setForm(prev => ({ ...prev, ministry_name: user.ministry.name }));
-      setDefaultMinistrySet(true);
-    }
-  }, [user, defaultMinistrySet]);
 
   return (
     <div className="card">
@@ -106,12 +100,21 @@ const ProposalForm = ({ onCreated }) => {
         <div className="form-group">
           <label>Ministry</label>
           <input 
-            name="ministry_name" 
-            value={form.ministry_name} 
-            onChange={onChange}
-            placeholder={user?.ministry?.name || "Enter ministry name"} 
-            required
+            type="text"
+            value={user?.ministry?.name || 'Not assigned to a ministry'} 
+            disabled
+            style={{ 
+              backgroundColor: '#f5f5f5', 
+              cursor: 'not-allowed',
+              opacity: 0.7
+            }}
+            title="Your ministry is locked to your account"
           />
+          {!user?.ministry?.id && (
+            <p style={{ fontSize: '12px', color: '#dc3545', marginTop: '5px' }}>
+              You must be assigned to a ministry to submit proposals.
+            </p>
+          )}
         </div>
         <div className="form-group">
           <label>Category</label>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { authAPI } from './api';
 import { useUser } from './UserContext';
+import Register from './Register';
 
-const Login = () => {
+const Login = ({ onSwitchToRegister }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -122,6 +123,23 @@ const Login = () => {
           </button>
         </form>
         
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={onSwitchToRegister}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#007bff',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: '14px'
+            }}
+          >
+            Don't have an account? Register
+          </button>
+        </div>
+
         <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '12px', color: '#666' }}>
           <p><strong>Test Accounts:</strong></p>
           <p>Finance: username: finance, password: fin</p>
