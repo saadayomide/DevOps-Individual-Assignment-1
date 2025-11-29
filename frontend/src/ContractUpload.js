@@ -25,7 +25,7 @@ const ContractUpload = ({ onCreated }) => {
       // Initialize row-level flags and check for existing proposals
       const initializedDrafts = (res.drafts || []).map(d => {
         const isExisting = existingProposals.some(existing => 
-          existing.ministry_name === d.ministry_name && 
+          (existing.ministry?.name || '') === (d.ministry_name || '') && 
           existing.title === d.title && 
           existing.requested_amount === d.requested_amount
         );

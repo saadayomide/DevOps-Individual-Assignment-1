@@ -151,7 +151,7 @@ const Dashboard = ({ refreshKey }) => {
 
   // Ministry spending chart
   const ministryChartData = {
-    labels: summary.ministries.map(m => m.ministry),
+    labels: summary.ministries.map(m => m.ministry_name || 'Unknown'),
     datasets: [
       {
         label: 'Requested Amount',

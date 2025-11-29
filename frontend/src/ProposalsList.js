@@ -180,8 +180,10 @@ const ProposalsList = () => {
     if (!user || user.role !== 'ministry') return false;
     if (proposal.status !== 'Pending') return false;
     
-    // Check ministry match
-    if (user.ministry !== proposal.ministry) return false;
+    // Check ministry match - compare IDs, not objects
+    const userMinistryId = user.ministry?.id || user.ministry_id;
+    const proposalMinistryId = proposal.ministry?.id || proposal.ministry_id;
+    if (userMinistryId !== proposalMinistryId) return false;
     
     return true;
   };

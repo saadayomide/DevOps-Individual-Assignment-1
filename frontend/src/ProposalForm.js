@@ -37,7 +37,7 @@ const ProposalForm = ({ onCreated }) => {
     }
     try {
       await proposalAPI.create({
-        ministry_id: user.ministry.id, // Use the logged-in user's ministry
+        ministry_id: user.ministry?.id || user.ministry_id, // Use the logged-in user's ministry
         category_id: parseInt(form.category_id, 10),
         title: form.title,
         description: form.description || null,
