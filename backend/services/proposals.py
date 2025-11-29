@@ -64,7 +64,7 @@ class ProposalService:
             ministry = MinistryRepository.get_by_id(db, payload.ministry_id)
             if not ministry:
                 raise MinistryNotFoundError("Ministry does not exist")
-            
+
             # Validate that ministry users can only create proposals for their own ministry
             if current_user.role == "ministry" and current_user.ministry_id != payload.ministry_id:
                 raise ValidationError(
