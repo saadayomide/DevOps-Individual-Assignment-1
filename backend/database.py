@@ -148,17 +148,58 @@ def create_tables():
     db = SessionLocal()
 
     try:
-        # Create default ministry
-        education_ministry = (
-            db.query(DBMinistry).filter(DBMinistry.name == "Ministry of Education").first()
-        )
+        # Create default ministries
+        default_ministries = [
+            {
+                "name": "Ministry of Education",
+                "description": "Government ministry responsible for education policy and funding"
+            },
+            {
+                "name": "Ministry of Health",
+                "description": "Government ministry responsible for healthcare policy and public health"
+            },
+            {
+                "name": "Ministry of Infrastructure",
+                "description": "Government ministry responsible for infrastructure development and maintenance"
+            },
+            {
+                "name": "Ministry of Defense",
+                "description": "Government ministry responsible for national defense and security"
+            },
+            {
+                "name": "Ministry of Finance",
+                "description": "Government ministry responsible for financial policy and economic planning"
+            },
+            {
+                "name": "Ministry of Transportation",
+                "description": "Government ministry responsible for transportation systems and logistics"
+            },
+            {
+                "name": "Ministry of Energy",
+                "description": "Government ministry responsible for energy policy and resource management"
+            },
+            {
+                "name": "Ministry of Agriculture",
+                "description": "Government ministry responsible for agricultural policy and food security"
+            }
+        ]
+
+        # Create ministries if they don't exist
+        created_ministries = {}
+        for ministry_data in default_ministries:
+            existing = db.query(DBMinistry).filter(DBMinistry.name == ministry_data["name"]).first()
+            if not existing:
+                ministry = DBMinistry(**ministry_data)
+                db.add(ministry)
+                db.flush()  # Get the ID
+                created_ministries[ministry_data["name"]] = ministry
+            else:
+                created_ministries[ministry_data["name"]] = existing
+
+        # Get Ministry of Education for default user (or use first created)
+        education_ministry = created_ministries.get("Ministry of Education")
         if not education_ministry:
-            education_ministry = DBMinistry(
-                name="Ministry of Education",
-                description="Government ministry responsible for education policy and funding",
-            )
-            db.add(education_ministry)
-            db.flush()  # Get the ID
+            education_ministry = db.query(DBMinistry).filter(DBMinistry.name == "Ministry of Education").first()
 
         # Create default finance user
         finance_user = db.query(DBUser).filter(DBUser.username == "finance").first()
