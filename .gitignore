@@ -24,6 +24,7 @@ wheels/
 venv/
 env/
 ENV/
+antenv/
 
 # Database
 *.db
@@ -53,9 +54,12 @@ Thumbs.db
 .coverage
 htmlcov/
 .tox/
+coverage.xml
 
 # Logs
 *.log
+logs/
+logs.zip
 
 # Frontend
 frontend/node_modules/
