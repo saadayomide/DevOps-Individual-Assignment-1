@@ -426,6 +426,78 @@ class TestProposalEndpoints:
         assert response.status_code == 200
         assert "deleted successfully" in response.json()["message"]
 
+    def test_delete_proposal_cross_ministry_forbidden(self, client, test_db, sample_proposal):
+        """Test that ministry users cannot delete proposals from other ministries"""
+        from database import Ministry as DBMinistry, User as DBUser
+        from auth import get_password_hash
+
+        # Create a different ministry
+        other_ministry = DBMinistry(name="Other Ministry", description="Different ministry")
+        test_db.add(other_ministry)
+        test_db.commit()
+        test_db.refresh(other_ministry)
+
+        # Create a user from the other ministry
+        other_user = DBUser(
+            username="otheruser",
+            email="other@example.com",
+            hashed_password=get_password_hash("otherpass"),
+            role="ministry",
+            ministry_id=other_ministry.id,
+        )
+        test_db.add(other_user)
+        test_db.commit()
+        test_db.refresh(other_user)
+
+        # Login as the other user
+        login_response = client.post("/auth/login", json={"username": "otheruser", "password": "otherpass"})
+        token = login_response.json()["access_token"]
+        other_headers = {"Authorization": f"Bearer {token}"}
+
+        # Try to delete a proposal from a different ministry (should fail)
+        response = client.delete(f"/proposals/{sample_proposal.id}", headers=other_headers)
+
+        assert response.status_code == 400
+        assert "your own ministry" in response.json()["detail"].lower()
+
+    def test_update_proposal_cross_ministry_forbidden(self, client, test_db, sample_proposal):
+        """Test that ministry users cannot update proposals from other ministries"""
+        from database import Ministry as DBMinistry, User as DBUser
+        from auth import get_password_hash
+
+        # Create a different ministry
+        other_ministry = DBMinistry(name="Other Ministry 2", description="Different ministry")
+        test_db.add(other_ministry)
+        test_db.commit()
+        test_db.refresh(other_ministry)
+
+        # Create a user from the other ministry
+        other_user = DBUser(
+            username="otheruser2",
+            email="other2@example.com",
+            hashed_password=get_password_hash("otherpass2"),
+            role="ministry",
+            ministry_id=other_ministry.id,
+        )
+        test_db.add(other_user)
+        test_db.commit()
+        test_db.refresh(other_user)
+
+        # Login as the other user
+        login_response = client.post("/auth/login", json={"username": "otheruser2", "password": "otherpass2"})
+        token = login_response.json()["access_token"]
+        other_headers = {"Authorization": f"Bearer {token}"}
+
+        # Try to update a proposal from a different ministry (should fail)
+        response = client.put(
+            f"/proposals/{sample_proposal.id}",
+            json={"title": "Unauthorized Update"},
+            headers=other_headers,
+        )
+
+        assert response.status_code == 400
+        assert "your own ministry" in response.json()["detail"].lower()
+
 
 @pytest.mark.api
 class TestApprovalEndpoints:

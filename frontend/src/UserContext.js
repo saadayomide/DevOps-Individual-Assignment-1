@@ -27,7 +27,7 @@ export const UserProvider = ({ children }) => {
           setUser(currentUser);
         } catch (error) {
           // Token is invalid, clear it
-          console.log('Token validation failed, clearing auth data');
+          // Token validation failed, clearing auth data
           localStorage.removeItem('authToken');
           localStorage.removeItem('user');
           setUser(null);

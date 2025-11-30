@@ -117,7 +117,7 @@ class ProposalService:
         return ProposalRepository.create(db, proposal_data)
 
     @staticmethod
-    def update_proposal(db: Session, proposal_id: int, payload: ProposalUpdate) -> DBProposal:
+    def update_proposal(db: Session, proposal_id: int, payload: ProposalUpdate, current_user) -> DBProposal:
         """
         Update an existing proposal.
 
@@ -125,6 +125,7 @@ class ProposalService:
         - Proposal exists and is in Pending status
         - Updated fields are valid
         - Related entities (ministry, category) exist
+        - Ministry users can only update proposals from their own ministry
         """
         proposal = ProposalRepository.get_by_id(db, proposal_id)
         if not proposal:
@@ -134,9 +135,20 @@ class ProposalService:
         if proposal.status != "Pending":
             raise InvalidProposalStatusError("Only pending proposals can be edited")
 
+        # Validate that ministry users can only update proposals from their own ministry
+        if current_user.role == "ministry":
+            user_ministry_id = current_user.ministry_id or (current_user.ministry.id if current_user.ministry else None)
+            proposal_ministry_id = proposal.ministry_id or (proposal.ministry.id if proposal.ministry else None)
+            if user_ministry_id != proposal_ministry_id:
+                raise ValidationError("You can only update proposals from your own ministry")
+
         update_data = {}
 
         if payload.ministry_id is not None:
+            # Validate that ministry users can only update to their own ministry
+            if current_user.role == "ministry":
+                if current_user.ministry_id != payload.ministry_id:
+                    raise ValidationError("You can only update proposals to your own ministry")
             ministry = MinistryRepository.get_by_id(db, payload.ministry_id)
             if not ministry:
                 raise MinistryNotFoundError("Ministry does not exist")
@@ -166,12 +178,13 @@ class ProposalService:
         return ProposalRepository.update(db, proposal, update_data)
 
     @staticmethod
-    def delete_proposal(db: Session, proposal_id: int) -> None:
+    def delete_proposal(db: Session, proposal_id: int, current_user) -> None:
         """
         Delete a proposal.
 
         Validates:
         - Proposal exists and is in Pending status
+        - Ministry users can only delete proposals from their own ministry
         """
         proposal = ProposalRepository.get_by_id(db, proposal_id)
         if not proposal:
@@ -179,5 +192,12 @@ class ProposalService:
 
         if proposal.status != "Pending":
             raise InvalidProposalStatusError("Only pending proposals can be deleted")
+
+        # Validate that ministry users can only delete proposals from their own ministry
+        if current_user.role == "ministry":
+            user_ministry_id = current_user.ministry_id or (current_user.ministry.id if current_user.ministry else None)
+            proposal_ministry_id = proposal.ministry_id or (proposal.ministry.id if proposal.ministry else None)
+            if user_ministry_id != proposal_ministry_id:
+                raise ValidationError("You can only delete proposals from your own ministry")
 
         ProposalRepository.delete(db, proposal)

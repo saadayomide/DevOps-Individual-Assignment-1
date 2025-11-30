@@ -419,15 +419,24 @@ def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/proposals/{proposal_id}", response_model=Proposal)
-def update_proposal(proposal_id: int, payload: ProposalUpdate, db: Session = Depends(get_db)):
-    """Update a proposal (only if status is Pending)."""
-    return ProposalService.update_proposal(db, proposal_id, payload)
+def update_proposal(
+    proposal_id: int,
+    payload: ProposalUpdate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_ministry_role),
+):
+    """Update a proposal (only if status is Pending). Ministry users can only update proposals from their own ministry."""
+    return ProposalService.update_proposal(db, proposal_id, payload, current_user)
 
 
 @app.delete("/proposals/{proposal_id}")
-def delete_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    """Delete a proposal (only if status is Pending)."""
-    ProposalService.delete_proposal(db, proposal_id)
+def delete_proposal(
+    proposal_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(require_ministry_role),
+):
+    """Delete a proposal (only if status is Pending). Ministry users can only delete proposals from their own ministry."""
+    ProposalService.delete_proposal(db, proposal_id, current_user)
     return {"message": "Proposal deleted successfully"}
 
 
