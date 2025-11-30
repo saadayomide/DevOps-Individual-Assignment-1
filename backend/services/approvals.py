@@ -3,7 +3,7 @@ Service for proposal approval and rejection business logic.
 Handles the approval workflow, budget checks, and atomic updates.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -64,7 +64,7 @@ class ApprovalService:
         proposal.status = "Approved"
         proposal.approved_amount = approved_amount
         proposal.decision_notes = decision_notes
-        proposal.decided_at = datetime.now(timezone.utc)
+        proposal.decided_at = datetime.now(UTC)
 
         db.commit()
         db.refresh(proposal)
@@ -94,7 +94,7 @@ class ApprovalService:
         proposal.status = "Rejected"
         proposal.approved_amount = None
         proposal.decision_notes = decision_notes
-        proposal.decided_at = datetime.now(timezone.utc)
+        proposal.decided_at = datetime.now(UTC)
 
         db.commit()
         db.refresh(proposal)

@@ -428,8 +428,9 @@ class TestProposalEndpoints:
 
     def test_delete_proposal_cross_ministry_forbidden(self, client, test_db, sample_proposal):
         """Test that ministry users cannot delete proposals from other ministries"""
-        from database import Ministry as DBMinistry, User as DBUser
         from auth import get_password_hash
+        from database import Ministry as DBMinistry
+        from database import User as DBUser
 
         # Create a different ministry
         other_ministry = DBMinistry(name="Other Ministry", description="Different ministry")
@@ -462,8 +463,9 @@ class TestProposalEndpoints:
 
     def test_update_proposal_cross_ministry_forbidden(self, client, test_db, sample_proposal):
         """Test that ministry users cannot update proposals from other ministries"""
-        from database import Ministry as DBMinistry, User as DBUser
         from auth import get_password_hash
+        from database import Ministry as DBMinistry
+        from database import User as DBUser
 
         # Create a different ministry
         other_ministry = DBMinistry(name="Other Ministry 2", description="Different ministry")

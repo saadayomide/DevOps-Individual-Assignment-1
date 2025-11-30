@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, create_engine
@@ -46,7 +46,7 @@ class Ministry(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     is_active = Column(Boolean, default=True)
 
     # Relationships
@@ -62,7 +62,7 @@ class Category(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     allocated_budget = Column(Float, nullable=False)
     remaining_budget = Column(Float, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     proposals = relationship("Proposal", back_populates="category")
@@ -81,7 +81,7 @@ class User(Base):
         Integer, ForeignKey("ministries.id"), nullable=True
     )  # Foreign key to Ministry
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     ministry = relationship("Ministry", back_populates="users")
@@ -103,7 +103,7 @@ class Proposal(Base):
     approved_amount = Column(Float, nullable=True)
     decision_notes = Column(String, nullable=True)
     decided_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     ministry = relationship("Ministry", back_populates="proposals")
